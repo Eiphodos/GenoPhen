@@ -1,0 +1,115 @@
+seed: 42
+log_dir: D:\Models\GenoPhen
+model:
+  class: RobertaForMaskedLM
+  n_attention_heads: 4
+  n_hidden_layers: 4
+  hidden_size: 512
+optimizer:
+  lr: 0.000002
+  weight_decay: 0
+training:
+  n_epochs: 100
+  val_every_n_epochs: 10
+data:
+  train_batch_size: 256
+  val_batch_size: 256
+  cv_n_folds: 5
+  cv_fold: 0
+  species:
+    - E_Coli
+    - Kleb
+  columns:
+    - AST_phenotypes
+    - AMR_genotypes_core
+    - geo_loc_name
+  filter:
+    point: False
+    partial: True
+    partial_contig: True
+    mistranslation: True
+    hmm: True
+    bla: True
+    aph_aac: True
+    min_geno: 1
+    min_pheno: 2
+tokenizer:
+  use_pretrained: False
+  class: RobertaTokenizer
+  special_token_list:
+    - <s>
+    - <pad>
+    - </s>
+    - <mask>
+    - <unk>
+species:
+  E_Coli:
+    file_path: D:\Datasets\NCBI\E.Coli_Shigella\PDG000000004.3840.amr.metadata.tsv
+  Kleb:
+    file_path: D:\Datasets\NCBI\Klebsiella\PDG000000012.1495.amr.metadata.tsv
+antibiotics:
+  index_list:
+    - name: amoxicillin-clavulanic acid
+      abbrev: AMC
+    - name: ampicillin
+      abbrev: AMP
+    - name: amoxicillin
+      abbrev: AMX
+    - name: ceftazidime
+      abbrev: CAZ
+    - name: ciprofloxacin
+      abbrev: CIP
+    - name: ceftriaxone
+      abbrev: CRO
+    - name: cefotaxime
+      abbrev: CTX
+    - name: cefepime
+      abbrev: FEP
+    - name: gentamicin
+      abbrev: GEN
+    - name: levofloxacin
+      abbrev: LVX
+    - name: moxifloxacin
+      abbrev: MFX
+    - name: nalidixic acid
+      abbrev: NAL
+    - name: ofloxacin
+      abbrev: OFX
+    - name: piperacillin
+      abbrev: PIP
+    - name: tobramycin
+      abbrev: TOB
+    - name: piperacillin-Tazobactam
+      abbrev: TZP
+  AMC: amoxicillin-clavulanic acid
+  AMP: ampicillin
+  AMX: amoxicillin
+  CAZ: ceftazidime
+  CIP: ciprofloxacin
+  CRO: ceftriaxone
+  CTX: cefotaxime
+  FEP: cefepime
+  GEN: gentamicin
+  LVX: levofloxacin
+  MFX: moxifloxacin
+  NAL: nalidixic acid
+  OFX: ofloxacin
+  PIP: piperacillin
+  TOB: tobramycin
+  TZP: piperacillin-Tazobactam
+  amoxicillin-clavulanic acid: AMC
+  ampicillin: AMP
+  amoxicillin: AMX
+  ceftazidime: CAZ
+  ciprofloxacin: CIP
+  ceftriaxone: CRO
+  cefotaxime: CTX
+  cefepime: FEP
+  gentamicin: GEN
+  levofloxacin: LVX
+  moxifloxacin: MFX
+  nalidixic acid: NAL
+  ofloxacin: OFX
+  piperacillin: PIP
+  tobramycin: TOB
+  piperacillin-Tazobactam: TZP

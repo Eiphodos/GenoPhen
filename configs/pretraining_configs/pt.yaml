@@ -1,0 +1,21 @@
+log_dir: D:\Models\GenoPhen\Pretraining
+training:
+  mlm_probability: 0.15
+optimizer:
+  lr: 0.00025
+data:
+  species:
+    - E_Coli
+    - Kleb
+  columns:
+    - AMR_genotypes_core
+  filter:
+    point: False
+    partial: True
+    partial_contig: True
+    mistranslation: True
+    hmm: True
+    bla: True
+    aph_aac: True
+    min_geno: 3
+    min_pheno: 0
