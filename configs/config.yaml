@@ -31,11 +31,13 @@ data:
     hmm: True
     bla: True
     aph_aac: True
+    doubles: True
     min_geno: 1
     min_pheno: 2
 tokenizer:
   use_pretrained: False
   class: RobertaTokenizer
+  max_len: 50
   special_token_list:
     - <s>
     - <pad>

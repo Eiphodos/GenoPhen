@@ -27,7 +27,7 @@ def create_and_train_tokenizer(cfg, dataframe):
 
     if cfg['tokenizer']['class'] == "RobertaTokenizer":
         tokenizer_c = transformers.RobertaTokenizer
-    tokenizer = tokenizer_c.from_pretrained(cfg['log_dir'], max_length=50)
+    tokenizer = tokenizer_c.from_pretrained(cfg['log_dir'], max_length=cfg['tokenizer']['max_len'])
     tokenizer.save_pretrained(save_directory=cfg['log_dir'])
 
     return tokenizer

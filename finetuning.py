@@ -20,7 +20,7 @@ from models.modeling import build_model
 
 def main(args):
     ### Build config ###
-    cfg = build_config(pt_config=args.pt_config, model_config=args.model_config)
+    cfg = build_config(finetuning_config=args.ft_config, model_config=args.model_config)
 
     ### Setup distributed ###
     dist_misc.init_distributed_mode(args)
@@ -32,7 +32,7 @@ def main(args):
             #log_writer = SummaryWriter(logdir=cfg['log_dir'])
         if args.wandb_logging:
             wandb.login()
-            wandb.init(project="Pretrain", entity="eiphodos", config=cfg, dir=cfg['log_dir'])
+            wandb.init(project="Finetuning", entity="eiphodos", config=cfg, dir=cfg['log_dir'])
 
 
     ### Setup torch ###
@@ -55,7 +55,7 @@ def main(args):
 
 
     ### Build dataloaders ###
-    train_dataloader, val_dataloader = build_pt_dataloaders(cfg, dataframe, tokenizer)
+    train_dataloader, val_dataloader = build_ft_dataloaders(cfg, dataframe, tokenizer)
     print("Build train dataloader with {} items and val dataloader with {} items".format(len(train_dataloader),
                                                                                          len(val_dataloader)))
 
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('--dist_url', default='env://',  help='url used to set up distributed training')
     parser.add_argument('--dist_backend', default='nccl',  help='Backend to use for distributed training')
     # Other settings
-    parser.add_argument("--pt_config", type=str, help="Name of config")
+    parser.add_argument("--ft_config", type=str, help="Name of config")
     parser.add_argument("--model_config", type=str, help="Name of config")
     parser.add_argument('--no_wandb_logging', action='store_false', dest='wandb_logging', help='Disables wandb logging')
     parser.set_defaults(wandb_logging=True)
