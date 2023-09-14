@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import re
+from data.hierarchy import build_hierarchy_data
 
 def preprocess_data(cfg):
     multispecies = len(cfg['data']['species']) > 1
@@ -15,17 +16,25 @@ def preprocess_data(cfg):
     if multispecies:
         columns.append("species_name")
     df = df[columns]
-
     print("CONCAT: Dataframe with {} rows and {} columns".format(len(df), df.columns))
-    print(df["AST_phenotypes"].loc[2825])
+
     if "AST_phenotypes" in columns:
         df = df[~df["AST_phenotypes"].isnull()]
         print("NULL PHENO: Dataframe with {} rows".format(len(df)))
-        df = clean_pheno_data(cfg, df)
-        print("CLEAN PHENO: Dataframe with {} rows".format(len(df)))
+
     if "AMR_genotypes_core" in columns:
         df = df[~df["AMR_genotypes_core"].isnull()]
         print("NULL GENO: Dataframe with {} rows".format(len(df)))
+
+    if cfg['data']['hierarchy']['use_hierarchy_data'] and "AMR_genotypes_core" in columns:
+        df = build_hierarchy_data(cfg, df)
+        columns.append("Hierarchy_data")
+        print(df["Hierarchy_data"].iloc[0:5])
+
+    if "AST_phenotypes" in columns:
+        df = clean_pheno_data(cfg, df)
+        print("CLEAN PHENO: Dataframe with {} rows".format(len(df)))
+    if "AMR_genotypes_core" in columns:
         df = clean_geno_data(cfg, df)
         print("CLEAN GENO: Dataframe with {} rows".format(len(df)))
 
@@ -74,6 +83,7 @@ def preprocess_data(cfg):
     print("Example rows after filters: \n")
     for c in columns:
         print(df[c])
+
     return df
 
 
@@ -148,4 +158,9 @@ def clean_pheno_data(cfg, df):
 def clean_geno_data(cfg, df):
     df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(lambda x: x.replace("''", "b")) # Replace biss with b
     df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(lambda x: x.replace("'", "p")) # Replace prime with p
+    return df
+
+def clean_hierarchy_data(cfg, df):
+    df['Hierarchy_data'] = df['Hierarchy_data'].map(lambda x: x.replace("''", "b")) # Replace biss with b
+    df['Hierarchy_data'] = df['Hierarchy_data'].map(lambda x: x.replace("'", "p")) # Replace prime with p
     return df

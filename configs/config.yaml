@@ -32,6 +32,7 @@ data:
     bla: True
     aph_aac: True
     doubles: True
+    forward_slash: True
     min_geno: 1
     min_pheno: 2
 tokenizer:

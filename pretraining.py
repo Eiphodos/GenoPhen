@@ -10,7 +10,7 @@ from torcheval.metrics.toolkit import sync_and_compute
 
 import misc.distributed_misc as dist_misc
 #from misc.utils import resume_training
-from misc.metrics import preprocess_mlm_acc
+from misc.metrics import preprocess_mlm_acc, oskar_pt_accuracy_calc
 from configs.config import build_config
 from data.build_dataloader import build_pt_dataloaders
 from data.preprocess_data import preprocess_data
@@ -106,12 +106,15 @@ def main(args):
             optimizer.zero_grad()
             train_loss.update(loss.detach())
         te_loss = sync_and_compute(train_loss) if args.distributed else train_loss.compute()
-        wandb.log({'Training epoch avg loss': te_loss, "Epoch": e})
+        if args.wandb_logging:
+            wandb.log({'Training epoch avg loss': te_loss, "Epoch": e})
         print("Mean training loss for epoch {}/{} is: {}".format(e, cfg['training']['n_epochs'], te_loss))
         train_loss.reset()
         if ((e + 1) % cfg['training']['val_every_n_epochs']) == 0:
             if dist_misc.is_main_process():
                 model.eval()
+                val_acc_tot = 0
+                val_acc_n = 0
                 with torch.no_grad():
                     for i, batch in enumerate(val_dataloader):
                         batch = {k: v.to(device) for k, v in batch.items()}
@@ -120,15 +123,24 @@ def main(args):
                         loss = outputs.loss
                         val_loss.update(loss)
                         predictions = torch.argmax(outputs.logits, dim=-1)
+
                         pp_predictions, pp_labels = preprocess_mlm_acc(predictions, batch['labels'])
                         val_acc.update(pp_predictions, pp_labels)
 
+                        acc2 = oskar_pt_accuracy_calc(predictions, batch['labels'])
+                        val_acc_tot += acc2
+                        val_acc_n += 1
+
+
                     ve_loss = val_loss.compute()
                     ve_acc = val_acc.compute()
-                wandb.log({'Validation epoch loss': ve_loss,
-                           "Val epoch accuracy": ve_acc, "Epoch": e})
+                acc_oskar = val_acc_tot / val_acc_n
+                if args.wandb_logging:
+                    wandb.log({'Validation epoch loss': ve_loss,
+                               "Val epoch accuracy": ve_acc, "Val epoch accuracy (oskar)": acc_oskar, "Epoch": e})
                 print("Mean validation loss for epoch {}/{} is: {}".format(e, cfg['training']['n_epochs'], ve_loss))
                 print("Mean validation accuracy for epoch {}/{} is: {}".format(e, cfg['training']['n_epochs'], ve_acc))
+                print("Mean validation accuracy (oskar) for epoch {}/{} is: {}".format(e, cfg['training']['n_epochs'], acc_oskar))
                 val_loss.reset()
                 val_acc.reset()
             if args.distributed:

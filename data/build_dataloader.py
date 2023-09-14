@@ -1,14 +1,15 @@
 from transformers import DataCollatorForLanguageModeling
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe
-from data.datasets import GenoPhenoPTDataSet, GenoPhenoFTDataset
+from data.datasets import GenoPhenoPTDataset, GenoPhenoFTDataset
 
 def build_pt_dataloaders(cfg, dataframe, tokenizer):
     train_dataframe, val_dataframe = cv_split_dataframe(cfg, dataframe)
 
-    train_dataset = GenoPhenoPTDataSet(train_dataframe, tokenizer)
-    val_dataset = GenoPhenoPTDataSet(val_dataframe, tokenizer)
+    train_dataset = GenoPhenoPTDataset(train_dataframe, tokenizer)
+    val_dataset = GenoPhenoPTDataset(val_dataframe, tokenizer)
 
+    # Collator assumes data has been tokenized already, uses tokenizer to add padding to max batch len
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']
     )
@@ -22,8 +23,8 @@ def build_pt_dataloaders(cfg, dataframe, tokenizer):
 def build_ft_dataloaders(cfg, dataframe, tokenizer):
     train_dataframe, val_dataframe = cv_split_dataframe(cfg, dataframe)
 
-    train_dataset = GenoPhenoFTDataSet(train_dataframe, tokenizer)
-    val_dataset = GenoPhenoFTDataSet(val_dataframe, tokenizer)
+    train_dataset = GenoPhenoFTDataset(train_dataframe, tokenizer)
+    val_dataset = GenoPhenoFTDataset(val_dataframe, tokenizer)
 
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']

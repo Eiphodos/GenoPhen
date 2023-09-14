@@ -17,5 +17,11 @@ data:
     hmm: True
     bla: True
     aph_aac: True
+    doubles: True
+    forward_slash: True
     min_geno: 3
     min_pheno: 0
+  hierarchy:
+    use_hierarchy_data: True
+    hierarchy_file_path: D:\Datasets\NCBI\ReferenceGeneHierarchy.txt
+    catalog_file_path: D:\Datasets\NCBI\ReferenceGeneCatalog.txt

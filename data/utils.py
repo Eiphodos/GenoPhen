@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from sklearn.model_selection import KFold
 
 def get_unique_word_list(df):
@@ -23,3 +24,16 @@ def cv_split_dataframe(cfg, dataframe):
     val_dataframe = dataframe.iloc[val_folds[cfg['data']['cv_fold']]]
 
     return train_dataframe, val_dataframe
+
+def create_corpus(cfg, dataframe):
+    df_list = dataframe.values.tolist()
+    corpus = []
+    for r in df_list:
+        r = [a for a in r if not type(a) == float]
+        r = ",".join(r)
+        corpus.append(r)
+    with open(os.path.join(cfg['log_dir'], 'corpus.txt'), 'w') as f:
+        f.writelines(c + '\n' for c in corpus)
+        f.close()
+    return corpus
+

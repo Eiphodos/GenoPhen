@@ -1,7 +1,8 @@
 import os
 import tokenizers
 import transformers
-from data.utils import get_unique_word_list
+from models.roberta.tokenization_roberta import RobertaTokenizer
+from data.utils import get_unique_word_list, create_corpus
 
 
 def build_tokenizer(cfg, dataframe):
@@ -26,22 +27,10 @@ def create_and_train_tokenizer(cfg, dataframe):
     base_tokenizer.save_model(directory=cfg['log_dir'])
 
     if cfg['tokenizer']['class'] == "RobertaTokenizer":
-        tokenizer_c = transformers.RobertaTokenizer
+        tokenizer_c = RobertaTokenizer
     tokenizer = tokenizer_c.from_pretrained(cfg['log_dir'], max_length=cfg['tokenizer']['max_len'])
     tokenizer.save_pretrained(save_directory=cfg['log_dir'])
 
     return tokenizer
 
-
-def create_corpus(cfg, dataframe):
-    df_list = dataframe.values.tolist()
-    corpus = []
-    for r in df_list:
-        r = [a for a in r if not type(a) == float]
-        r = ",".join(r)
-        corpus.append(r)
-    with open(os.path.join(cfg['log_dir'], 'corpus.txt'), 'w') as f:
-        f.writelines(c + '\n' for c in corpus)
-        f.close()
-    return corpus
 
