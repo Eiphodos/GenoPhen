@@ -1,0 +1,32 @@
+log_dir: D:\Models\GenoPhen\Pretraining
+training:
+  mlm_probability: 0.15
+optimizer:
+  lr: 0.00025
+species:
+  E_Coli:
+    file_path: /media/david/T7/NCBI/E.Coli.Shigella/PDG000000004.3840.amr.metadata.tsv
+  Kleb:
+    file_path: /media/david/T7/NCBI/Klebsiella/PDG000000012.1486.amr.metadata.tsv
+data:
+  species:
+    - E_Coli
+    - Kleb
+  columns:
+    - AMR_genotypes_core
+  filter:
+    point: False
+    partial: True
+    partial_contig: True
+    mistranslation: True
+    hmm: True
+    bla: True
+    aph_aac: True
+    doubles: True
+    forward_slash: True
+    min_geno: 3
+    min_pheno: 0
+  hierarchy:
+    use_hierarchy_data: False
+    hierarchy_file_path: /media/david/T7/NCBI/ReferenceGeneHierarchy.txt
+    catalog_file_path: /media/david/T7/NCBI/ReferenceGeneCatalog.txt

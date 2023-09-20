@@ -4,7 +4,7 @@ import re
 
 def get_gene_trace(hdata, cdata, gene_word):
     trace = []
-    # regex pattern for patching with pointwise mutations
+    # regex pattern for matching with pointwise mutations
     pattern = r'_[a-zA-Z0-9-]{3,}='
     if re.search(pattern, gene_word):
         gene_word = gene_word.split('=')[0]
