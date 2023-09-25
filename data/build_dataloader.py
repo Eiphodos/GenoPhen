@@ -1,4 +1,4 @@
-from transformers import DataCollatorForLanguageModeling
+from transformers import DataCollatorForLanguageModeling, DataCollator
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe, combinatorial_data_generator
 from data.datasets import GenoPhenoPTDataset, GenoPhenoFTDataset
@@ -33,7 +33,7 @@ def build_ft_dataloaders(cfg, dataframe, tokenizer):
     train_dataset = GenoPhenoFTDataset(cfg, comb_train_dataframe, tokenizer)
     val_dataset = GenoPhenoFTDataset(cfg, comb_val_dataframe, tokenizer)
 
-    data_collator = DataCollatorForLanguageModeling(
+    data_collator = DataCollator(
         tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']
     )
 

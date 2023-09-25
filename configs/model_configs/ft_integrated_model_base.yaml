@@ -1,7 +1,19 @@
 model:
   class: IntegratedModel
-  pheno_model_class: BERTModel
-  geno_model_class: RobertaModel
-  n_attention_heads: 4
-  n_hidden_layers: 4
-  hidden_size: 512
+  pheno:
+    class: AntibioticModelTrain
+    num_hiddens: 64
+    norm_shape: 64
+    ffn_num_input: 64
+    ffn_num_hiddens: 128
+    attention_heads: 1
+    attention_layers: 2
+    dropout: 0.05
+    key_size: 64
+    query_size: 64
+    value_size: 64
+  geno:
+    class: RobertaModel
+    n_attention_heads: 4
+    n_hidden_layers: 4
+    hidden_size: 64

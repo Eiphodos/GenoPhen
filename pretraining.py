@@ -15,7 +15,7 @@ from configs.config import build_config
 from data.build_dataloader import build_pt_dataloaders
 from data.preprocess_data import preprocess_data
 from models.tokenizer import build_tokenizer
-from models.modeling import build_model
+from models.modeling import build_pt_model
 
 
 def main(args):
@@ -61,7 +61,7 @@ def main(args):
 
 
     ### Build model ###
-    model = build_model(cfg, tokenizer)
+    model = build_pt_model(cfg, tokenizer)
     model.to(device)
     model_without_ddp = model
     print("Model = %s" % str(model_without_ddp))

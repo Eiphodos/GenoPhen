@@ -1,10 +1,5 @@
 seed: 42
 log_dir: D:\Models\GenoPhen
-model:
-  class: RobertaForMaskedLM
-  n_attention_heads: 4
-  n_hidden_layers: 4
-  hidden_size: 512
 optimizer:
   lr: 0.000002
   weight_decay: 0
@@ -55,6 +50,23 @@ species:
   Kleb:
     file_path: D:\Datasets\NCBI\Klebsiella\PDG000000012.1495.amr.metadata.tsv
 antibiotics:
+  antibiotics_in_use:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
   index_list:
     - name: amoxicillin-clavulanic acid
       abbrev: AMC
