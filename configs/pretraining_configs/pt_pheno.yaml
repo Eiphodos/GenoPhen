@@ -1,0 +1,27 @@
+log_dir: D:\Models\GenoPhen\Pretraining
+training:
+  mlm_probability: 0.15
+optimizer:
+  lr: 0.00025
+data:
+  species:
+    - E_Coli
+    - Kleb
+  columns:
+    - AST_phenotypes
+  filter:
+    point: False
+    partial: True
+    partial_contig: True
+    mistranslation: True
+    hmm: True
+    bla: True
+    aph_aac: True
+    doubles: True
+    forward_slash: True
+    min_geno: 0
+    min_ab: 2
+  hierarchy:
+    use_hierarchy_data: False
+    hierarchy_file_path: D:\Datasets\NCBI\ReferenceGeneHierarchy.txt
+    catalog_file_path: D:\Datasets\NCBI\ReferenceGeneCatalog.txt

@@ -12,7 +12,7 @@ import misc.distributed_misc as dist_misc
 #from misc.utils import resume_training
 from misc.metrics import preprocess_mlm_acc
 from configs.config import build_config
-from data.build_dataloader import build_pt_dataloaders
+from data.build_dataloader import build_ft_dataloaders
 from data.preprocess_data import preprocess_data
 from models.tokenizer import build_tokenizer
 from models.modeling import build_model

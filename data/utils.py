@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 from sklearn.model_selection import KFold
+import itertools
 
 def get_unique_word_list(df):
     all_words = []
@@ -39,3 +40,35 @@ def create_corpus(cfg, dataframe):
         f.close()
     return corpus
 
+
+def combinatorial_data_generator(cfg, dataframe):
+
+    new_dict = {}
+    for c in dataframe.columns:
+        new_dict[c] = []
+    new_dict['AST_phenotypes_x'] = []
+    new_dict['AST_phenotypes_y'] = []
+
+    # The number of known antibiotics in input data must be smaller than
+    # the minumum number of antibiotics in total as otherwise there is nothing to predict
+    assert cfg['data']['known_ab'] < cfg['data']['filter']['min_ab']
+    #assert cfg['data']['known_geno'] < cfg['data']['filter']['min_geno']
+
+    for i, row in dataframe.iterrows():
+        ab_list = row['AST_phenotypes'].split(',')
+        # Create all possible permutations of antibiotics
+        all_combs = list(itertools.combinations(ab_list, cfg['data']['known_ab']))
+        for j in range(len(all_combs)):
+            x_ab = list(all_combs[j])
+            # Get the remaining ab as the unknown labels
+            y_ab = (list(set(ab_list) ^ set(x_ab)))
+            # Add known and unknown antibiotics to new dataframe
+            new_dict['AST_phenotypes_x'].append(x_ab)
+            new_dict['AST_phenotypes_y'].append(y_ab)
+            # Add remaining genotype and phenotype data
+            for c in dataframe.columns:
+                    new_dict[c].append(row[c])
+
+    new_dataframe = pd.DataFrame(new_dict)
+
+    return new_dataframe

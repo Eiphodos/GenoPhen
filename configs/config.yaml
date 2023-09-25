@@ -34,7 +34,11 @@ data:
     doubles: True
     forward_slash: True
     min_geno: 1
-    min_pheno: 2
+    min_ab: 1
+  hierarchy:
+    use_hierarchy_data: False
+    hierarchy_file_path: D:\Datasets\NCBI\ReferenceGeneHierarchy.txt
+    catalog_file_path: D:\Datasets\NCBI\ReferenceGeneCatalog.txt
 tokenizer:
   use_pretrained: False
   class: RobertaTokenizer

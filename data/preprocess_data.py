@@ -45,39 +45,39 @@ def preprocess_data(cfg):
     if "geo_loc_name" in columns:
         df['geo_loc_name'] = df['geo_loc_name'].map(lambda x: x.split(":")[0] if type(x) is str else x) # Remove suffixes from location
 
-    if cfg['data']['filter']['point']:
+    if "AMR_genotypes_core" in columns and cfg['data']['filter']['point']:
         df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
             lambda x: ','.join([a for a in x.split(',') if '=POINT' not in a]))
         print("FILTER POINT: Dataframe with {} rows".format(len(df)))
-    if cfg['data']['filter']['partial']:
+    if "AMR_genotypes_core" in columns and cfg['data']['filter']['partial']:
         df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
             lambda x: ','.join([a for a in x.split(',') if '=PARTIAL' not in a]))
         print("FILTER PARTIAL: Dataframe with {} rows".format(len(df)))
-    if cfg['data']['filter']['partial_contig']:
+    if "AMR_genotypes_core" in columns and cfg['data']['filter']['partial_contig']:
         df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
             lambda x: ','.join([a for a in x.split(',') if '=PARTIAL_END_OF_CONTIG' not in a]))
         print("FILTER PARTIAL_CONTIG: Dataframe with {} rows".format(len(df)))
-    if cfg['data']['filter']['mistranslation']:
+    if "AMR_genotypes_core" in columns and cfg['data']['filter']['mistranslation']:
         df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
             lambda x: ','.join([a for a in x.split(',') if '=MISTRANSLATION' not in a]))
         print("FILTER MISTRANSLATION: Dataframe with {} rows".format(len(df)))
-    if cfg['data']['filter']['hmm']:
+    if "AMR_genotypes_core" in columns and cfg['data']['filter']['hmm']:
         df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
             lambda x: ','.join([a for a in x.split(',') if '=HMM' not in a]))
         print("FILTER HMM: Dataframe with {} rows".format(len(df)))
-    if cfg['data']['filter']['bla']:
+    if "AMR_genotypes_core" in columns and cfg['data']['filter']['bla']:
         df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
             lambda x: ','.join([remove_last_digits(a) if a[0:3] == 'bla' else a for a in x.split(',')]))
         print("FILTER BLA: Dataframe with {} rows".format(len(df)))
-    if cfg['data']['filter']['aph_aac']:
+    if "AMR_genotypes_core" in columns and cfg['data']['filter']['aph_aac']:
         df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(filter_aap_aac)
         print("FILTER APH_AAC: Dataframe with {} rows".format(len(df)))
     if "AMR_genotypes_core" in columns and cfg['data']['filter']['min_geno'] > 0:
         df = df[df['AMR_genotypes_core'].apply(filter_len, min_length=cfg['data']['filter']['min_geno'])]
-        print("FILTER GENO_LEN: Dataframe with {} rows".format(len(df)))
-    if "AST_phenotypes" in columns and cfg['data']['filter']['min_pheno'] > 0:
-        df = df[df['AST_phenotypes'].apply(filter_len, min_length=cfg['data']['filter']['min_pheno'])]
-        print("FILTER PHENO_LEN: Dataframe with {} rows".format(len(df)))
+        print("FILTER GENO LEN: Dataframe with {} rows".format(len(df)))
+    if "AST_phenotypes" in columns and cfg['data']['filter']['min_ab'] > 0:
+        df = df[df['AST_phenotypes'].apply(filter_len, min_length=cfg['data']['filter']['min_ab'])]
+        print("FILTER AB LEN: Dataframe with {} rows".format(len(df)))
 
     print("FINAL: Dataframe with {} rows and {} columns".format(len(df), df.columns))
     print("Example rows after filters: \n")

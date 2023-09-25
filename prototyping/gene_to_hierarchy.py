@@ -41,6 +41,25 @@ def find_number_of_words(data):
     return all_words
 
 
+def find_number_of_amr_words(data):
+    all_words = []
+    for index, row in data.iterrows():
+        parent = row['parent_node_id']
+        leaf = row['node_id']
+        trace = []
+        trace.append(leaf)
+        while parent not in [np.nan, 'AMR', 'ALL']:
+            trace.append(parent)
+            parent = parent.replace("'", "\'")
+            parent = data[data['node_id'] == parent]['parent_node_id'].item()
+        if parent == 'AMR':
+            all_words += trace
+    all_words = list(set(all_words))
+    print("Total number of unique words in AMR: {}".format(len(all_words)))
+    print("Examples: {}".format(all_words[0:6]))
+    return all_words
+
+
 def get_gene_trace(data, gene_word):
     trace = []
     trace.append(gene_word)
@@ -78,7 +97,8 @@ def get_gene_trace_symbol(data, gene_word):
 hdata = pd.read_csv(r'D:\Datasets\NCBI\ReferenceGeneHierarchy.txt', sep='\t')
 ml = find_number_of_levels(hdata)
 print("Max levels is {}".format(ml))
-#aw = find_number_of_words(hdata)
+aw = find_number_of_words(hdata)
+amrw = find_number_of_amr_words(hdata)
 all_traces = []
 gw = "blaOXA-292"
 gw2 = "aac(6')-IId"

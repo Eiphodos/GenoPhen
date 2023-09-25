@@ -16,4 +16,6 @@ data:
     bla: True
     aph_aac: True
     min_geno: 1
-    min_pheno: 1
+    min_ab: 4
+  known_ab: 3
+  known_gene: -1
