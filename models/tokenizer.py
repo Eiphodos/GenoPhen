@@ -7,7 +7,9 @@ from data.utils import get_unique_word_list, create_corpus
 
 def build_tokenizer(cfg, dataframe):
     if cfg['tokenizer']['use_pretrained']:
-        tokenizer = tokenizers.cfg['tokenizer']['class'].from_pretrained(cfg['tokenizer']['model_path'])
+        if cfg['tokenizer']['class'] == "RobertaTokenizer":
+            tokenizer_c = RobertaTokenizer
+        tokenizer = tokenizer_c.from_pretrained(cfg['tokenizer']['geno']['pretrained_weights'])
     else:
         tokenizer = create_and_train_tokenizer(cfg, dataframe)
     return tokenizer

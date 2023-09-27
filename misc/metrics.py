@@ -28,3 +28,31 @@ def oskar_pt_accuracy_calc(predictions, target):
 
     accuracy = accuracy_sum / len(predictions)
     return accuracy
+
+
+def error_rates_legacy(predicted_values, real_values):
+    s_count = 0
+    r_count = 0
+    s_correct = 0
+    r_correct = 0
+    for i in range(len(real_values)):
+        if real_values[i] == 1:  # R
+            r_count += 1
+            if torch.argmax(predicted_values[i]) == real_values[i]:
+                r_correct += 1
+        if real_values[i] == 0:  # S
+            s_count += 1
+            if torch.argmax(predicted_values[i]) == real_values[i]:
+                s_correct += 1
+
+    if s_count == 0:
+        major_error_rate = 0
+    else:
+        major_error_rate = 1 - s_correct / s_count
+
+    if r_count == 0:
+        very_major_error_rate = 0
+    else:
+        very_major_error_rate = 1 - r_correct / r_count
+
+    return major_error_rate, very_major_error_rate

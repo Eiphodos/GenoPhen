@@ -1,4 +1,4 @@
-log_dir: D:\Models\GenoPhen\Pretraining
+log_dir: D:\Models\GenoPhen\Pretraining\Pheno
 training:
   mlm_probability: 0.15
 optimizer:

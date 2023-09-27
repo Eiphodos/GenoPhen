@@ -1,7 +1,6 @@
 import random
 from torch.utils.data import Dataset
 
-
 class GenoPTDataSet(Dataset):
     def __init__(self, data, tokenizer):
         self.tokenizer = tokenizer
@@ -85,55 +84,57 @@ class GenoPhenoFTDataset(Dataset):
         return {'input_ids': tokenized_words}
 
 
-class GenoPhenoFTDataset(Dataset):
-    def __init__(self, data_amr, data_ab, tokenizer, vocab, nr_of_known, no_amr=False):
-        self.tokenizer = tokenizer
+class GenoPhenoFTDataset_legacy(Dataset):
+    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno):
+        self.ab_index_list = cfg['antibiotics']['index_list']
+        self.tokenizer_geno = tokenizer_geno
         # self.labels = labels
-        self.data_amr, self.x_ab, self.y_ab = combinatorial_data_generator(data_amr, data_ab, nr_of_known)
-        self.vocab = vocab
-        self.nr_of_known = nr_of_known
-        self.nr_of_known_org = nr_of_known
+        self.data = dataframe
+        self.tokenizer_pheno = tokenizer_pheno
         self.test_count = 0
-        self.no_amr = no_amr  # set this to true in order to remove genotype data
 
     def __len__(self):
-        return len(self.data_amr)
+        return len(self.data)
 
     def __getitem__(self, idx):
-        gene_sentence = self.data_amr[idx]
-        gene_words = gene_sentence.split(',')
+        sample_data = self.data.iloc[idx]
+        geno_x = sample_data['AMR_genotypes_core']
+        ab_x = sample_data['AST_phenotypes_x']
+        ab_y = sample_data['AST_phenotypes_y']
+        gene_words = geno_x.split(',')
+        ab_x = ab_x.split(',')
+        ab_y = ab_y.split(',')
         random.shuffle(gene_words)
 
-        ab_sentence = self.x_ab[idx]
-        meta_data = ab_sentence.split(',')[:3]
-        x_ab = ab_sentence.split(',')[3:]
+        meta_data = []
+        if 'geo_loc_name' in self.data.columns:
+            meta_data.append(sample_data['geo_loc_name'])
+        if 'gender' in self.data.columns:
+            meta_data.append(sample_data['gender'])
+        else:
+            meta_data.append(random.choice(['M', 'F']))
 
-        y_ab = self.y_ab[idx].split(',')  # the antibiotics the model will predict
+        x = ['<cls>'] + meta_data + ['unk'] + ab_x + (
+                    (14 - len(ab_x)) * ['<pad>'])  # the metadata and antibiotics known
 
-        x = ['<cls>'] + meta_data + ['unk'] + x_ab + (
-                    (14 - len(x_ab)) * ['<pad>'])  # the metadata and antibiotics known
+        x = self.tokenizer_pheno(x)
+        total_len_x = len(ab_x) + 2 + len(meta_data)  # +5 is due to the 4 metadata entries and the cls entry
 
-        x = vocab(x)[0:19]
-        total_len_x = len(x_ab) + 5  # +5 is due to the 4 metadata entries and the cls entry
+        x_pos_antibiotic = self.get_ab_pos(ab_x, "x")[0:14]  # the position of the antibiotics in abbreviation list
+        y_pos_antibiotic = self.get_ab_pos(ab_y, "y")[0:8]
 
-        x_pos_antibiotic = get_ab_pos(x_ab, "x")[0:14]  # the position of the antibiotics in abbreviation list
-        y_pos_antibiotic = get_ab_pos(y_ab, "y")[0:8]
+        x_resp = self.get_ab_resp(ab_x, "x")[0:14]  # numeric interpretation of each r and s
+        y_resp = self.get_ab_resp(ab_y, "y")[0:8]
 
-        x_resp = get_ab_resp(x_ab, "x")[0:14]  # numeric interpretation of each r and s
-        y_resp = get_ab_resp(y_ab, "y")[0:8]
-
-        len_x = len(x_ab)
-        len_y = len(y_ab)
+        len_x = len(ab_x)
+        len_y = len(ab_y)
 
         if len_y > 8:  # some exceptions were found with more than 8 unknown
+            print("Found example with more than 8 unknown! {}".format(ab_y))
             len_y = 8
 
-        if self.no_amr:  # token 4 means "unknown"
-            amr = [0, 4, 2]
-        else:
-            amr = self.tokenizer.encode(gene_words)
+        amr = self.tokenizer_geno.encode(gene_words)
 
-        self.nr_of_known = self.nr_of_known_org
         return {'input_ids': amr,  # genotype data
                 "ab": x,  # phenotype data
                 'x pos ab': x_pos_antibiotic,
@@ -143,3 +144,31 @@ class GenoPhenoFTDataset(Dataset):
                 'len x': len_x,
                 'len y': len_y,
                 "total len x": total_len_x}
+
+    def get_ab_pos(self, ab_list, letter):  # letter indicates if ab is known (x) or unknown (y)
+        pos_list = []
+        for i in range(len(ab_list)):
+            abbrev = ab_list[i][0:3]  # the abbreviation of each antibiotic, one at a time
+            for j in range(len(self.ab_index_list)):
+                if abbrev == self.ab_index_list[j]['abbrev']:
+                    pos_list.append(j)  # the position of this antibiotic in our abbrevation list
+        if letter == "y":
+            pos_list += [-1] * (8 - len(pos_list))  # fill upp so that we have 8 elements in our unknown vector
+        if letter == "x":
+            pos_list += [-1] * (14 - len(pos_list))  # fill upp so that we have 14 elements in our unknown vector
+        return pos_list
+
+
+    def get_ab_resp(self, ab_list, letter):
+        resp_list = []
+        for i in range(len(ab_list)):
+            resp = ab_list[i][-1]  # the letter indicating S or R
+            if resp == "S":
+                resp_list.append(0)
+            else:
+                resp_list.append(1)
+        if letter == "y":
+            resp_list += [-1] * (8 - len(resp_list))
+        if letter == "x":
+            resp_list += [-1] * (14 - len(resp_list))
+        return resp_list

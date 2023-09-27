@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import numpy as np
 from sklearn.model_selection import KFold
 import itertools
 
@@ -72,3 +73,32 @@ def combinatorial_data_generator(cfg, dataframe):
     new_dataframe = pd.DataFrame(new_dict)
 
     return new_dataframe
+
+
+def weights_separated_by_label(cfg, dataframe):
+    weights = np.zeros(16)
+    weights_r = np.zeros(16)
+    weights_s = np.zeros(16)
+    for i, row in dataframe.iterrows():
+        ab_list = row['AST_phenotypes'].split(',')
+        for j in range(len(cfg['antibiotics']['index_list'])):
+            if cfg['antibiotics']['index_list'][j]['abbrev'] + '=r' in ab_list:
+                weights[j] += 1
+                weights_r[j] += 1
+            if cfg['antibiotics']['index_list'][j]['abbrev'] + '=s' in ab_list:
+                weights[j] += 1
+                weights_s[j] += 1
+    weight_sum = sum(weights)
+    weight_r_sum = sum(weights_r)
+    weight_s_sum = sum(weights_s)
+    ab_dict = {ab['abbrev']: [] for ab in cfg['antibiotics']['index_list']}
+    for i, k in enumerate(ab_dict.keys()):
+        ab_tot = weights_r[i] + weights_s[i]
+        ab_dict[k].append(weights_s[i] / ab_tot)
+        ab_dict[k].append(weights_r[i] / ab_tot)
+    return weights/weight_sum, weights_s/weight_s_sum, weights_r/weight_r_sum, ab_dict
+
+def compute_resistance_ratio_per_ab(cfg, dataframe):
+    ab_dict = {ab['abbrev']: [] for ab in cfg['antibiotics']['index_list']}
+    for i, row in dataframe.iterrows():
+        ab_list = row['AST_phenotypes'].split(',')

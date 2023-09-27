@@ -1,5 +1,10 @@
+import wandb
 import torch
 import torch.nn as nn
+import numpy as np
+import itertools
+from transformers import get_scheduler
+from misc.metrics import error_rates_legacy
 
 
 def ast_accuracy_2(predicted_values, real_values):        # also do based on R and S to get very major error rate!
@@ -12,36 +17,33 @@ def ast_accuracy_2(predicted_values, real_values):        # also do based on R a
     return correct_count/len(real_values)
 
 
-class integrated_model():
-
-    def __init__(self, cfg, ast_model, amr_model, train_dataloader, eval_dataloader, num_epochs, weights_train, weights_val,
-                 weights_r_val, weights_s_val, df_details, hidden_dim):
-        self.num_epochs = num_epochs
-        self.weights_train = weights_train
-        self.weights_val = weights_val
-        self.df_details = df_details
-        self.weights_s_val = weights_s_val
-        self.weights_r_val = weights_r_val
-        self.ast_model = ast_model
-        self.amr_model = amr_model
+class IntegratedModel:
+    def __init__(self, cfg, pheno_model, geno_model, train_dataloader, eval_dataloader):
+        self.num_epochs = cfg['training']['n_epochs']
+        self.weights_train = cfg['antibiotics']['train_ab_weights']['all']
+        self.weights_val = cfg['antibiotics']['val_ab_weights']['all']
+        self.weights_s_val = cfg['antibiotics']['val_ab_weights']['weights_s']
+        self.weights_r_val = cfg['antibiotics']['val_ab_weights']['weights_r']
+        self.pheno_model = pheno_model
+        self.geno_model = geno_model
         self.device = cfg['device']
-        self.hidden_dim = hidden_dim
-        self.number_ab = len(cfg['antibiotics']['antibiotics_in_use'])
-        self.abpred = [self.ab_pred(hidden_dim) for _ in range(self.number_ab)]
+        self.number_ab = 16
+        self.abpred = [self.ab_pred(cfg['model']['input_dim'], cfg['model']['hidden_dim']) for _ in range(self.number_ab)]  # 1 neural networks for each ab
         self.losses = [nn.CrossEntropyLoss(weight=torch.tensor(v, requires_grad=False).to(self.device),
-                                           reduction='mean') for v in cfg['antibiotics_weights'].values()]
+                                           reduction='mean') for v in cfg['antibiotics']['res_ratio_train'].values()]
 
         self.acc = [ast_accuracy_2 for _ in range(self.number_ab)]
         self.train_dataloader = train_dataloader
 
         long_param_list = []
         for i in range(len(self.abpred)):
-            long_param_list.extend(list(self.abpred[i].parameters()))
+            long_param_list.extend(list(self.abpred[i].parameters()))  # add all parameters from the neural networks
 
-        self.optimizer = torch.optim.Adam(list(self.ast_model.net.parameters()) +
-                                          list(self.amr_model.parameters()) + long_param_list,
-                                          lr=config['parameters']['optimizer']['lr'] * 0.5,
-                                          weight_decay=config['parameters']['optimizer']['weight_decay'])
+        self.optimizer = torch.optim.Adam(list(self.pheno_model.net.parameters()) +
+                                          list(self.geno_model.parameters()) + long_param_list,
+                                          lr=cfg['optimizer']['lr'],
+                                          weight_decay=['optimizer']['weight_decay'])
+        # optimizer above takes all parameters from both transformers and all neural networks
         self.epoch = 0
         self.train_counter = 0
         self.val_counter = 0
@@ -49,14 +51,14 @@ class integrated_model():
         self.val_loader = eval_dataloader
         self.start_ab_stats = False
 
-        self.n_batches_train = np.ceil(len(self.train_dataloader.dataset) / config_2.batch_size)
-        self.n_batches_val = np.ceil(len(self.val_loader.dataset) / config_2.batch_size)
+        self.n_batches_train = np.ceil(len(self.train_dataloader.dataset) / cfg['data']['train_batch_size'])
+        self.n_batches_val = np.ceil(len(self.val_loader.dataset) / cfg['data']['val_batch_size'])
         self.eval_every_n = 2
         self.num_training_steps = self.num_epochs * len(self.train_dataloader)
         self.scheduler = get_scheduler("linear", optimizer=self.optimizer, num_warmup_steps=0,
                                        num_training_steps=self.num_training_steps)
 
-    def ab_pred(self, hidden_dim):
+    def ab_pred(self, input_dim, hidden_dim):
         self.ab = nn.Sequential(nn.Linear(input_dim, hidden_dim),
                                 nn.ReLU(), nn.LayerNorm(hidden_dim),
                                 nn.Linear(hidden_dim, 2)).to(self.device)
@@ -67,14 +69,28 @@ class integrated_model():
         input_ids = input_ids.to(self.device)
         attention_mask = attention_mask.to(self.device)
 
-        outputs = self.amr_model(input_ids, attention_mask)  # index out of range of self
+        outputs = self.geno_model(input_ids, attention_mask)  # index out of range of self
         output_logits = outputs.logits
+        # print("shape of AMR model logits: {}".format(output_logits.shape))
         cls_tokens_amr = output_logits[:, 0, :]
+        # print("shape of AMR model cls token: {}".format(cls_tokens_amr.shape))
 
-        cls_tokens_ab = self.ast_model.net.encoder(x, x_valid_len_to)[:, 0, :]
+        tokens_ab = self.pheno_model.net.encoder(x, x_valid_len_to)
+        # print("shape of AST model tokens: {}".format(tokens_ab.shape))
+        cls_tokens_ab = tokens_ab[:, 0, :]
+        # print("shape of AST model cls token: {}".format(cls_tokens_ab.shape))
+
+        # other_tokens_amr = output_logits[:,1:,:]
+        # other_tokens_ab = tokens_ab[:,1:,:]
+        # avg_other_amr = other_tokens_amr.mean(dim=1)
+        # avg_other_ab = other_tokens_ab.mean(dim=1)
+
+        # encoded_x = torch.cat([cls_tokens_amr, cls_tokens_ab, avg_other_amr, avg_other_ab], dim = 1).to(self.device)
         encoded_x = torch.cat([cls_tokens_amr, cls_tokens_ab], dim=1).to(self.device)
 
         encoded_x = encoded_x[:, None, :]
+        # print("shape of encoded x: {}".format(encoded_x.shape))
+
         mlm_hat = torch.cat([a(encoded_x) for a in self.abpred], 1).to(self.device)
 
         ab_y_hat = mlm_hat[batch_index_y, positions_y]
@@ -139,7 +155,7 @@ class integrated_model():
         acc = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                for i in range(self.number_ab)]
 
-        error_rates = [error_rates_2(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+        error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                        for i in range(self.number_ab)]
 
         me = [error_rates[i][0] for i in range(len(error_rates))]
@@ -168,7 +184,7 @@ class integrated_model():
             acc_list = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                         for i in range(self.number_ab)]
 
-            error_rates = [error_rates_2(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+            error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                            for i in range(self.number_ab)]
 
             me_list = [error_rates[i][0] for i in range(len(error_rates))]
@@ -187,7 +203,7 @@ class integrated_model():
     def _train_epoch(self):
         # Set Train Mode
         # Hur fick vi batch från början?
-        self.amr_model.train()
+        self.geno_model.train()
 
         train_loss = 0.
         acc_tot = 0
@@ -233,7 +249,7 @@ class integrated_model():
     def _val_epoch(self):
         # Set Train Mode
         # Hur fick vi batch från början?
-        self.amr_model.eval()
+        self.geno_model.eval()
 
         train_loss = 0.
         acc_tot = 0
@@ -294,14 +310,10 @@ class integrated_model():
                 if e % self.eval_every_n == 0:
                     ab_y_hat, ab_y_true, positions_y = self._val_epoch()
 
-                    # print(ab_y_true)
-                    # print(positions_y)
-                    # print(ab_y_hat)
-
                     acc_list = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                                 for i in range(self.number_ab)]
 
-                    error_rates = [error_rates_2(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+                    error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                                    for i in range(self.number_ab)]
 
                     me_list = [error_rates[i][0] for i in range(len(error_rates))]
@@ -316,22 +328,6 @@ class integrated_model():
                         weighted_me += me_list[i] * self.weights_s_val[i]
                         weighted_vme += vme_list[i] * self.weights_r_val[i]
 
-                    # print(self.epoch, "Accuracy Val Weighted: {}".format(weighted_acc))
-                    # print(self.epoch, "Major error Weighted: {}".format(weighted_me))
-                    # print(self.epoch, "Very major error Weighted: {}".format(weighted_vme))
-
                     wandb.log({'Val epoch accuracy': weighted_acc, "epoch": e})
                     wandb.log({'Val epoch major error rate': weighted_me, "epoch": e})
                     wandb.log({'Val epoch very major error rate': weighted_vme, "epoch": e})
-                    '''
-                    if e > self.num_epochs - self.eval_every_n - 1:
-                        df = pd.read_csv(f"/cephyr/users/oskgus/Alvis/Master thesis/FCC-Alvis/FCCgit/dire/DataFrames/differ_{self.df_details[2]}.csv")
-
-                        df[self.df_details[3]].loc[0] = weighted_acc
-                        df[self.df_details[3]].loc[1] = weighted_me
-                        df[self.df_details[3]].loc[2] = weighted_vme
-
-                        # we save data in the column corresponding to species, as indicated by df_details[3]
-                        df.to_csv(f"/cephyr/users/oskgus/Alvis/Master thesis/FCC-Alvis/FCCgit/dire/DataFrames/differ_{self.df_details[2]}.csv")
-
-                '''

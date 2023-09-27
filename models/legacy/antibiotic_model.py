@@ -34,10 +34,8 @@ class AntibioticModel(Model):
             os.mkdir("saved_models")
         torch.save(self.net, "saved_models/{}.pt".format(modelname))
 
-    def load_model(self, modelname: str):
-        self.net = torch.load(
-            r"C:\Users\David\PycharmProjects\dire\saved_models\{}.pt".format(modelname), map_location=self.device
-        )
+    def load_model(self, pt_weights: str):
+        self.net = torch.load(pt_weights, map_location=self.device)
 
     def predict(self, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, len_x, len_y, total_len_x, deterministic=False):
 

@@ -41,7 +41,7 @@ def build_config(pt_config=None, finetuning_config=None, model_config=None):
 
 def test_ab_dict(config):
     for k, v in config['antibiotics'].items():
-        if k != "index_list":
+        if k not in ["index_list", "antibiotics_in_use"]:
             assert k == config['antibiotics'][v]
 
     for i in config['antibiotics']["index_list"]:

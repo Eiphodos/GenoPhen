@@ -4,6 +4,7 @@ from models.roberta.configuration_roberta import RobertaConfig
 from models.roberta.modeling_roberta import RobertaForMaskedLM, RobertaModel
 from models.legacy.antibiotic_model import AntibioticModelTrain
 from models.legacy.d2l_bert import BERTModel
+from models.legacy.integrated_model import IntegratedModel
 
 
 def build_pt_model(cfg, tokenizer):
@@ -19,17 +20,20 @@ def build_pt_model(cfg, tokenizer):
     return model
 
 
-def build_ft_model(cfg, tokenizer, train_dataloader, val_dataloader, losses):
+def build_ft_legacy_model(cfg, tokenizer_geno, tokenizer_pheno, train_dataloader, val_dataloader, losses):
     if cfg['model']['class'] == 'IntegratedModel':
         if cfg['model']['geno']['class'] == 'RobertaModel':
-            geno_m_config = RobertaConfig(vocab_size=tokenizer.vocab_size,
+            geno_m_config = RobertaConfig(vocab_size=tokenizer_geno.vocab_size,
                                                   max_position_embeddings=50,
                                                   num_attention_heads=cfg['model']['n_attention_heads'],
                                                   num_hidden_layers=cfg['model']['n_hidden_layers'],
                                                   type_vocab_size=1,
                                                   hidden_size=cfg['model']['hidden_size'])
-            geno_model = RobertaModel(geno_m_config)
-        
+            if cfg['model']['geno']['use_pretrained']:
+                geno_model = RobertaModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
+            else:
+                geno_model = RobertaModel(geno_m_config)
+
         if cfg['model']['pheno']['class'] == 'AntibioticModelTrain':
             pheno_encoder = BERTModel(vocab_size=cfg['vocab_len'], 
                                       num_hiddens=cfg['model']['pheno']['num_hiddens'],
@@ -58,6 +62,11 @@ def build_ft_model(cfg, tokenizer, train_dataloader, val_dataloader, losses):
                                          number_ab=len(cfg['antibiotics']['antibiotics_in_use']),
                                          saved_model_name='Legacy AB model')
 
-            model = integrated_model
+            if cfg['model']['pheno']['use_pretrained']:
+                pheno_model.load_model(cfg['model']['pheno']['pretrained_weights'])
+
+            hidden_dim = 1000
+
+            model = IntegratedModel(cfg, pheno_model, geno_model, train_dataloader, val_dataloader)
 
     return model
