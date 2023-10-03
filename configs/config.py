@@ -5,37 +5,48 @@ import time
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def build_config(pt_config=None, finetuning_config=None, model_config=None):
+def build_config(args):
     with open(os.path.join(ROOT_DIR, 'config.yaml')) as f:
         try:
             config = yaml.safe_load(f)
             test_ab_dict(config)
         except yaml.YAMLError as exc:
             print(exc)
-    if model_config is not None:
-        with open(os.path.join(ROOT_DIR, 'model_configs', model_config + '.yaml')) as f:
+    if args.model_config is not None:
+        with open(os.path.join(ROOT_DIR, 'model_configs', args.model_config + '.yaml')) as f:
             try:
                 m_config = yaml.safe_load(f)
             except yaml.YAMLError as exc:
                 print(exc)
 
         config = data_merge(config, m_config)
-    if pt_config is not None:
-        with open(os.path.join(ROOT_DIR, 'pretraining_configs', pt_config + '.yaml')) as f:
+    if args.pt_config is not None:
+        with open(os.path.join(ROOT_DIR, 'pretraining_configs', args.pt_config + '.yaml')) as f:
             try:
                 pt_config = yaml.safe_load(f)
             except yaml.YAMLError as exc:
                 print(exc)
 
         config = data_merge(config, pt_config)
-    if finetuning_config is not None:
-        with open(os.path.join(ROOT_DIR, 'finetuning_configs', finetuning_config + '.yaml')) as f:
+    if args.ft_config is not None:
+        with open(os.path.join(ROOT_DIR, 'finetuning_configs', args.ft_config + '.yaml')) as f:
             try:
                 ft_config = yaml.safe_load(f)
             except yaml.YAMLError as exc:
                 print(exc)
 
         config = data_merge(config, ft_config)
+
+    config['log_dir'] = args.log_dir
+    config['model']['geno']['pretrained_weights'] = args.geno_model_weights
+    config['model']['pheno']['pretrained_weights'] = args.pheno_model_weights
+    config['tokenizer']['geno']['pretrained_weights'] = args.geno_tokenizer_weights
+    config['tokenizer']['pheno']['pretrained_weights'] = args.pheno_tokenizer_weights
+    for s in config['data']['species']:
+        if s == 'E_Coli':
+            config['species'][s]["file_path"] = args.ecoli_file
+        elif s == 'Kleb':
+            config['species'][s]["file_path"] = args.kleb_file
 
     if not config['log_dir'] is None:
         config['log_dir'] = os.path.join(config['log_dir'], config['model']['class'] + '_' + time.strftime("%Y-%m-%d-%H_%M"))

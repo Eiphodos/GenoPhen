@@ -21,7 +21,7 @@ from models.modeling import build_ft_legacy_model
 
 def main(args):
     ### Build config ###
-    cfg = build_config(finetuning_config=args.ft_config, model_config=args.model_config)
+    cfg = build_config(args)
 
     ### Setup distributed ###
     dist_misc.init_distributed_mode(args)
@@ -79,7 +79,15 @@ def main(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    # distributed training parameters
+    # Paths
+    parser.add_argument("--log_dir", type=str, help="Directory for logs and outputs")
+    parser.add_argument("--ecoli_file", type=str, help="Path to E.Coli data")
+    parser.add_argument("--kleb_file", type=str, help="Path to Kleb data")
+    parser.add_argument("--geno_model_weights", type=str, help="Path to genotype model pre-trained weights (directory)")
+    parser.add_argument("--pheno_model_weights", type=str, help="Path to phenotype model pre-trained weights")
+    parser.add_argument("--geno_tokenizer_weights", type=str, help="Path to Genotype model pre-trained weights (directory)")
+    parser.add_argument("--pheno_tokenizer_weights", type=str, help="Path to Genotype model pre-trained weights")
+    # Distributed training parameters
     parser.add_argument("--distributed", action='store_true', help="Enables distributed training")
     parser.add_argument('--world_size', default=1, type=int,  help='number of distributed processes')
     parser.add_argument('--rank', default=0, type=int)
