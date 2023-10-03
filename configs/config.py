@@ -1,5 +1,6 @@
 import yaml
 import os
+import time
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -36,12 +37,16 @@ def build_config(pt_config=None, finetuning_config=None, model_config=None):
 
         config = data_merge(config, ft_config)
 
+    if not config['log_dir'] is None:
+        config['log_dir'] = os.path.join(config['log_dir'], config['model']['class'] + '_' + time.strftime("%Y-%m-%d-%H_%M"))
+    os.makedirs(config['log_dir'], exist_ok=True)
+
     return config
 
 
 def test_ab_dict(config):
     for k, v in config['antibiotics'].items():
-        if k not in ["index_list", "antibiotics_in_use"]:
+        if k not in ["index_list", "antibiotics_in_use", 'antibiotics_weights']:
             assert k == config['antibiotics'][v]
 
     for i in config['antibiotics']["index_list"]:
@@ -81,3 +86,7 @@ def data_merge(a, b):
         raise YamlReaderError('TypeError "%s" in key "%s" when merging "%s" into "%s"' % (e, key, b, a))
     return a
 
+
+def save_config(cfg):
+    with open(os.path.join(cfg['log_dir'], "full_config.yaml"), "w") as f:
+        yaml.dump(cfg, f)

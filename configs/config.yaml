@@ -7,8 +7,11 @@ training:
   n_epochs: 100
   val_every_n_epochs: 10
 data:
-  train_batch_size: 256
-  val_batch_size: 256
+  train_batch_size: 512
+  val_batch_size: 512
+  train_n_workers: 8
+  val_n_workers: 4
+  pin_memory: True
   cv_n_folds: 5
   cv_fold: 0
   species:
@@ -18,6 +21,7 @@ data:
     - AST_phenotypes
     - AMR_genotypes_core
     - geo_loc_name
+    - target_creation_date
   filter:
     point: False
     partial: True
@@ -98,7 +102,7 @@ antibiotics:
       abbrev: PIP
     - name: tobramycin
       abbrev: TOB
-    - name: piperacillin-Tazobactam
+    - name: piperacillin-tazobactam
       abbrev: TZP
   AMC: amoxicillin-clavulanic acid
   AMP: ampicillin
@@ -115,7 +119,7 @@ antibiotics:
   OFX: ofloxacin
   PIP: piperacillin
   TOB: tobramycin
-  TZP: piperacillin-Tazobactam
+  TZP: piperacillin-tazobactam
   amoxicillin-clavulanic acid: AMC
   ampicillin: AMP
   amoxicillin: AMX
@@ -131,4 +135,4 @@ antibiotics:
   ofloxacin: OFX
   piperacillin: PIP
   tobramycin: TOB
-  piperacillin-Tazobactam: TZP
+  piperacillin-tazobactam: TZP

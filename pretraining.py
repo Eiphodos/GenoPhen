@@ -11,7 +11,7 @@ from torcheval.metrics.toolkit import sync_and_compute
 import misc.distributed_misc as dist_misc
 #from misc.utils import resume_training
 from misc.metrics import preprocess_mlm_acc, oskar_pt_accuracy_calc
-from configs.config import build_config
+from configs.config import build_config, save_config
 from data.build_dataloader import build_pt_dataloaders
 from data.preprocess_data import preprocess_data
 from models.tokenizer import build_tokenizer
@@ -27,9 +27,6 @@ def main(args):
 
     ### Setup logging ###
     if dist_misc.is_main_process():
-        if cfg['log_dir'] is not None:
-            os.makedirs(cfg['log_dir'], exist_ok=True)
-            #log_writer = SummaryWriter(logdir=cfg['log_dir'])
         if args.wandb_logging:
             wandb.login()
             wandb.init(project="Pretrain", entity="eiphodos", config=cfg, dir=cfg['log_dir'])
@@ -92,8 +89,10 @@ def main(args):
         resume_training(cfg, model_without_ddp, optimizer, scheduler)
     '''
 
-    print("Starting training...")
+    ### Save config ###
+    save_config(cfg)
 
+    print("Starting training...")
     for e in range(cfg['training']['n_epochs']):
         model.train()
         for j, batch in enumerate(train_dataloader):

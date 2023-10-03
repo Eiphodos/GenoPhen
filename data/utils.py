@@ -94,8 +94,14 @@ def weights_separated_by_label(cfg, dataframe):
     ab_dict = {ab['abbrev']: [] for ab in cfg['antibiotics']['index_list']}
     for i, k in enumerate(ab_dict.keys()):
         ab_tot = weights_r[i] + weights_s[i]
-        ab_dict[k].append(weights_s[i] / ab_tot)
-        ab_dict[k].append(weights_r[i] / ab_tot)
+        if ab_tot == 0:
+            w1 = 0
+            w2 = 0
+        else:
+            w1 = float(1 - (weights_s[i] / ab_tot)) # Inverse as they are used for loss weightings
+            w2 = float(1 - (weights_r[i] / ab_tot))
+        ab_dict[k].append(w1)
+        ab_dict[k].append(w2)
     return weights/weight_sum, weights_s/weight_s_sum, weights_r/weight_r_sum, ab_dict
 
 def compute_resistance_ratio_per_ab(cfg, dataframe):

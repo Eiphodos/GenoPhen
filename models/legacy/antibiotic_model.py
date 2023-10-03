@@ -32,10 +32,10 @@ class AntibioticModel(Model):
     def save_model(self, modelname: str):
         if not os.path.exists("saved_models"):
             os.mkdir("saved_models")
-        torch.save(self.net, "saved_models/{}.pt".format(modelname))
+        torch.save(self.net.state_dict(), "saved_models/{}.pt".format(modelname))
 
     def load_model(self, pt_weights: str):
-        self.net = torch.load(pt_weights, map_location=self.device)
+        self.net.load_state_dict(torch.load(pt_weights, map_location=self.device))
 
     def predict(self, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, len_x, len_y, total_len_x, deterministic=False):
 

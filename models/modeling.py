@@ -1,5 +1,6 @@
 import transformers
 import torch
+import torch.nn as nn
 from models.roberta.configuration_roberta import RobertaConfig
 from models.roberta.modeling_roberta import RobertaForMaskedLM, RobertaModel
 from models.legacy.antibiotic_model import AntibioticModelTrain
@@ -20,19 +21,20 @@ def build_pt_model(cfg, tokenizer):
     return model
 
 
-def build_ft_legacy_model(cfg, tokenizer_geno, tokenizer_pheno, train_dataloader, val_dataloader, losses):
+def build_ft_legacy_model(cfg, tokenizer_geno, train_dataloader, val_dataloader):
     if cfg['model']['class'] == 'IntegratedModel':
         if cfg['model']['geno']['class'] == 'RobertaModel':
             geno_m_config = RobertaConfig(vocab_size=tokenizer_geno.vocab_size,
                                                   max_position_embeddings=50,
-                                                  num_attention_heads=cfg['model']['n_attention_heads'],
-                                                  num_hidden_layers=cfg['model']['n_hidden_layers'],
+                                                  num_attention_heads=cfg['model']['geno']['n_attention_heads'],
+                                                  num_hidden_layers=cfg['model']['geno']['n_hidden_layers'],
                                                   type_vocab_size=1,
-                                                  hidden_size=cfg['model']['hidden_size'])
+                                                  hidden_size=cfg['model']['geno']['hidden_size'])
             if cfg['model']['geno']['use_pretrained']:
                 geno_model = RobertaModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
             else:
                 geno_model = RobertaModel(geno_m_config)
+        geno_model.to(cfg['device'])
 
         if cfg['model']['pheno']['class'] == 'AntibioticModelTrain':
             pheno_encoder = BERTModel(vocab_size=cfg['vocab_len'], 
@@ -47,10 +49,16 @@ def build_ft_legacy_model(cfg, tokenizer_geno, tokenizer_pheno, train_dataloader
                                       query_size=cfg['model']['pheno']['query_size'],
                                       value_size=cfg['model']['pheno']['value_size'],
                                       number_ab=len(cfg['antibiotics']['antibiotics_in_use']))
+            pheno_encoder.to(cfg['device'])
+
+
             optimizer = torch.optim.Adam(
                 list(geno_model.parameters()) + list(pheno_encoder.parameters()),
                 lr=cfg['optimizer']['lr'],
                 weight_decay=cfg['optimizer']['weight_decay'])
+
+            losses = [nn.CrossEntropyLoss(weight=torch.tensor(v, requires_grad=False, dtype=torch.float).to(cfg['device']),
+                                          reduction='mean') for v in cfg['antibiotics']['res_ratio_train'].values()]
 
             pheno_model = AntibioticModelTrain(train_loader=train_dataloader,
                                          val_loader=val_dataloader,
@@ -64,8 +72,6 @@ def build_ft_legacy_model(cfg, tokenizer_geno, tokenizer_pheno, train_dataloader
 
             if cfg['model']['pheno']['use_pretrained']:
                 pheno_model.load_model(cfg['model']['pheno']['pretrained_weights'])
-
-            hidden_dim = 1000
 
             model = IntegratedModel(cfg, pheno_model, geno_model, train_dataloader, val_dataloader)
 

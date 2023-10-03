@@ -26,6 +26,10 @@ def preprocess_data(cfg):
         df = df[~df["AMR_genotypes_core"].isnull()]
         print("NULL GENO: Dataframe with {} rows".format(len(df)))
 
+    if "target_creation_date" in columns:
+        df = df[~df["target_creation_date"].isnull()]
+        print("NULL DATE: Dataframe with {} rows".format(len(df)))
+
     if cfg['data']['hierarchy']['use_hierarchy_data'] and "AMR_genotypes_core" in columns:
         df = build_hierarchy_data(cfg, df)
         columns.append("Hierarchy_data")
@@ -37,6 +41,9 @@ def preprocess_data(cfg):
     if "AMR_genotypes_core" in columns:
         df = clean_geno_data(cfg, df)
         print("CLEAN GENO: Dataframe with {} rows".format(len(df)))
+    if "target_creation_date" in columns:
+        df = clean_date_data(cfg, df)
+        print("CLEAN DATE: Dataframe with {} rows".format(len(df)))
 
     print("Example rows before filters: \n")
     for c in columns:
@@ -142,23 +149,31 @@ def remove_duplicates(x):
     all_items.drop_duplicates(subset=[0], inplace=True, keep=False) # Deletes duplicates based on AB name
     return ",".join(["=".join(a) for a in all_items.values.tolist()]) # Joins into list again
 
+
 def convert_ab_to_abbrev(x, cfg):
     all_items = x.split(',')
     all_items = ["=".join([cfg['antibiotics'][a.split('=')[0]], a.split('=')[1]]) for a in all_items if a.split('=')[0] in cfg['antibiotics'].keys()]
     return ",".join(all_items)
 
+
 def clean_pheno_data(cfg, df):
-    df['AST_phenotypes'] = df['AST_phenotypes'].map(
-        lambda x: ','.join([a.lower() for a in x.split(',') if a[-1] == "R" or a[-1] == "S"])) #Remove all resistances that are not R or S
+    df['AST_phenotypes'] = df['AST_phenotypes'].map(lambda x: ','.join([a.lower() for a in x.split(',') if a[-1] == "R" or a[-1] == "S"])) #Remove all resistances that are not R or S
     if cfg['data']['filter']['doubles']:
         df['AST_phenotypes'] = df['AST_phenotypes'].map(remove_duplicates)
     df['AST_phenotypes'] = df['AST_phenotypes'].apply(convert_ab_to_abbrev, cfg=cfg)
     return df
 
+
 def clean_geno_data(cfg, df):
     df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(lambda x: x.replace("''", "b")) # Replace biss with b
     df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(lambda x: x.replace("'", "p")) # Replace prime with p
     return df
+
+
+def clean_date_data(cfg, df):
+    df['target_creation_date'] = df['target_creation_date'].map(lambda x: x[0:7]) # only keep YYYY-MM of the incoming YYYY-MM-DD
+    return df
+
 
 def clean_hierarchy_data(cfg, df):
     df['Hierarchy_data'] = df['Hierarchy_data'].map(lambda x: x.replace("''", "b")) # Replace biss with b
