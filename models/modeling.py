@@ -6,7 +6,6 @@ from models.roberta.modeling_roberta import RobertaForMaskedLM, RobertaModel
 from models.legacy.antibiotic_model import AntibioticModelTrain
 from models.legacy.d2l_bert import BERTModel
 from models.legacy.integrated_model import IntegratedModel
-import pathlib
 
 
 def build_pt_model(cfg, tokenizer):
@@ -32,7 +31,7 @@ def build_ft_legacy_model(cfg, tokenizer_geno, train_dataloader, val_dataloader)
                                                   type_vocab_size=1,
                                                   hidden_size=cfg['model']['geno']['hidden_size'])
             if cfg['model']['geno']['use_pretrained']:
-                geno_model = RobertaModel.from_pretrained(pathlib.Path(cfg['model']['geno']['pretrained_weights']), geno_m_config)
+                geno_model = RobertaModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
             else:
                 geno_model = RobertaModel(geno_m_config)
         geno_model.to(cfg['device'])

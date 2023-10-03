@@ -3,13 +3,12 @@ import tokenizers
 import transformers
 from models.roberta.tokenization_roberta import RobertaTokenizer
 from data.utils import get_unique_word_list, create_corpus
-import pathlib
 
 def build_tokenizer(cfg, dataframe):
     if cfg['tokenizer']['use_pretrained']:
         if cfg['tokenizer']['class'] == "RobertaTokenizer":
             tokenizer_c = RobertaTokenizer
-        tokenizer = tokenizer_c.from_pretrained(pathlib.Path(cfg['tokenizer']['geno']['pretrained_weights']))
+        tokenizer = tokenizer_c.from_pretrained(cfg['tokenizer']['geno']['pretrained_weights'])
     else:
         tokenizer = create_and_train_tokenizer(cfg, dataframe)
     return tokenizer
