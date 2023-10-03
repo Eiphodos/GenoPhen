@@ -80,13 +80,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     # Paths
-    parser.add_argument("--log_dir", type=str, help="Directory for logs and outputs")
-    parser.add_argument("--ecoli_file", type=str, help="Path to E.Coli data")
-    parser.add_argument("--kleb_file", type=str, help="Path to Kleb data")
-    parser.add_argument("--geno_model_weights", type=str, help="Path to genotype model pre-trained weights (directory)")
-    parser.add_argument("--pheno_model_weights", type=str, help="Path to phenotype model pre-trained weights")
-    parser.add_argument("--geno_tokenizer_weights", type=str, help="Path to Genotype model pre-trained weights (directory)")
-    parser.add_argument("--pheno_tokenizer_weights", type=str, help="Path to Genotype model pre-trained weights")
+    parser.add_argument("--log_dir", type=str, default='', help="Directory for logs and outputs")
+    parser.add_argument("--ecoli_file", type=str, default='', help="Path to E.Coli data")
+    parser.add_argument("--kleb_file", type=str, default='', help="Path to Kleb data")
+    parser.add_argument("--geno_model_weights", type=str, default='', help="Path to genotype model pre-trained weights (directory)")
+    parser.add_argument("--pheno_model_weights", type=str, default='', help="Path to phenotype model pre-trained weights")
+    parser.add_argument("--geno_tokenizer_weights", type=str, default='', help="Path to Genotype model pre-trained weights (directory)")
+    parser.add_argument("--pheno_tokenizer_weights", type=str, default='', help="Path to Genotype model pre-trained weights")
     # Distributed training parameters
     parser.add_argument("--distributed", action='store_true', help="Enables distributed training")
     parser.add_argument('--world_size', default=1, type=int,  help='number of distributed processes')
@@ -95,8 +95,9 @@ if __name__ == '__main__':
     parser.add_argument('--dist_url', default='env://',  help='url used to set up distributed training')
     parser.add_argument('--dist_backend', default='nccl',  help='Backend to use for distributed training')
     # Other settings
-    parser.add_argument("--ft_config", type=str, help="Name of config")
-    parser.add_argument("--model_config", type=str, help="Name of config")
+    parser.add_argument("--ft_config", type=str, default='', help="Name of config")
+    parser.add_argument("--pt_config", type=str, default='', help="Name of config")
+    parser.add_argument("--model_config", type=str, default='', help="Name of config")
     parser.add_argument('--no_wandb_logging', action='store_false', dest='wandb_logging', help='Disables wandb logging')
     parser.set_defaults(wandb_logging=True)
     args = parser.parse_args()
