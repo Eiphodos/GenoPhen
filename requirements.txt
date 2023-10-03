@@ -7,4 +7,3 @@ tokenizers
 tensorboard
 torcheval
 scikit-learn
-torchtext
