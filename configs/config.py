@@ -12,7 +12,7 @@ def build_config(args):
             test_ab_dict(config)
         except yaml.YAMLError as exc:
             print(exc)
-    if args.model_config is not None:
+    if bool(args.model_config):
         with open(os.path.join(ROOT_DIR, 'model_configs', args.model_config + '.yaml')) as f:
             try:
                 m_config = yaml.safe_load(f)
@@ -20,7 +20,7 @@ def build_config(args):
                 print(exc)
 
         config = data_merge(config, m_config)
-    if args.pt_config is not None:
+    if bool(args.pt_config):
         with open(os.path.join(ROOT_DIR, 'pretraining_configs', args.pt_config + '.yaml')) as f:
             try:
                 pt_config = yaml.safe_load(f)
@@ -28,7 +28,7 @@ def build_config(args):
                 print(exc)
 
         config = data_merge(config, pt_config)
-    if args.ft_config is not None:
+    if bool(args.ft_config):
         with open(os.path.join(ROOT_DIR, 'finetuning_configs', args.ft_config + '.yaml')) as f:
             try:
                 ft_config = yaml.safe_load(f)
