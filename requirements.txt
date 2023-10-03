@@ -8,4 +8,5 @@ tensorboard
 torcheval
 scikit-learn
 torchtext
+-i https://download.pytorch.org/whl/cu117
 torch
