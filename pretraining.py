@@ -20,7 +20,7 @@ from models.modeling import build_pt_model
 
 def main(args):
     ### Build config ###
-    cfg = build_config(args)
+    cfg = build_config(args, 'pretraining')
 
     ### Setup distributed ###
     dist_misc.init_distributed_mode(args)

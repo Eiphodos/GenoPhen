@@ -5,7 +5,7 @@ import time
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def build_config(args):
+def build_config(args, mode='finetuning'):
     with open(os.path.join(ROOT_DIR, 'config.yaml')) as f:
         try:
             config = yaml.safe_load(f)
@@ -37,11 +37,13 @@ def build_config(args):
 
         config = data_merge(config, ft_config)
 
+    if mode == 'finetuning':
+        config['model']['geno']['pretrained_weights'] = args.geno_model_weights
+        config['model']['pheno']['pretrained_weights'] = args.pheno_model_weights
+        config['tokenizer']['geno']['pretrained_weights'] = args.geno_tokenizer_weights
+        config['tokenizer']['pheno']['pretrained_weights'] = args.pheno_tokenizer_weights
+
     config['log_dir'] = args.log_dir
-    config['model']['geno']['pretrained_weights'] = args.geno_model_weights
-    config['model']['pheno']['pretrained_weights'] = args.pheno_model_weights
-    config['tokenizer']['geno']['pretrained_weights'] = args.geno_tokenizer_weights
-    config['tokenizer']['pheno']['pretrained_weights'] = args.pheno_tokenizer_weights
     config['data']['hierarchy']['hierarchy_file_path'] = args.hierarchy_data
     config['data']['hierarchy']['catalog_file_path'] = args.catalog_data
     for s in config['data']['species']:

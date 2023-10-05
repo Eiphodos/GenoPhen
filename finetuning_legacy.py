@@ -21,7 +21,7 @@ from models.modeling import build_ft_legacy_model
 
 def main(args):
     ### Build config ###
-    cfg = build_config(args)
+    cfg = build_config(args, 'finetuning')
 
     ### Setup distributed ###
     dist_misc.init_distributed_mode(args)
