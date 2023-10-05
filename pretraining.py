@@ -170,7 +170,8 @@ if __name__ == '__main__':
     parser.add_argument('--dist_url', default='env://',  help='url used to set up distributed training')
     parser.add_argument('--dist_backend', default='nccl',  help='Backend to use for distributed training')
     # Other settings
-    parser.add_argument("--pt_config", type=str, help="Name of config")
+    parser.add_argument("--ft_config", type=str, default='', help="Name of config")
+    parser.add_argument("--pt_config", type=str, default='', help="Name of config")
     parser.add_argument("--model_config", type=str, help="Name of config")
     parser.add_argument('--no_wandb_logging', action='store_false', dest='wandb_logging', help='Disables wandb logging')
     parser.set_defaults(wandb_logging=True)
