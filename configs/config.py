@@ -42,6 +42,8 @@ def build_config(args):
     config['model']['pheno']['pretrained_weights'] = args.pheno_model_weights
     config['tokenizer']['geno']['pretrained_weights'] = args.geno_tokenizer_weights
     config['tokenizer']['pheno']['pretrained_weights'] = args.pheno_tokenizer_weights
+    config['data']['hierarchy']['hierarchy_file_path'] = args.hierarchy_data
+    config['data']['hierarchy']['catalog_file_path'] = args.catalog_data
     for s in config['data']['species']:
         if s == 'E_Coli':
             config['species'][s]["file_path"] = args.ecoli_file

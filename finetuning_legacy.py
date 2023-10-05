@@ -87,6 +87,8 @@ if __name__ == '__main__':
     parser.add_argument("--pheno_model_weights", type=str, default='', help="Path to phenotype model pre-trained weights")
     parser.add_argument("--geno_tokenizer_weights", type=str, default='', help="Path to Genotype model pre-trained weights (directory)")
     parser.add_argument("--pheno_tokenizer_weights", type=str, default='', help="Path to Genotype model pre-trained weights")
+    parser.add_argument("--hierarchy_data", type=str, default='', help="Path to hierarchy data")
+    parser.add_argument("--catalog_data", type=str, default='', help="Path to catalog data")
     # Distributed training parameters
     parser.add_argument("--distributed", action='store_true', help="Enables distributed training")
     parser.add_argument('--world_size', default=1, type=int,  help='number of distributed processes')

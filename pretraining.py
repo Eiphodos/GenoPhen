@@ -20,7 +20,7 @@ from models.modeling import build_pt_model
 
 def main(args):
     ### Build config ###
-    cfg = build_config(pt_config=args.pt_config, model_config=args.model_config)
+    cfg = build_config(args)
 
     ### Setup distributed ###
     dist_misc.init_distributed_mode(args)
@@ -152,6 +152,16 @@ def main(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
+    # Paths
+    parser.add_argument("--log_dir", type=str, default='', help="Directory for logs and outputs")
+    parser.add_argument("--ecoli_file", type=str, default='', help="Path to E.Coli data")
+    parser.add_argument("--kleb_file", type=str, default='', help="Path to Kleb data")
+    parser.add_argument("--geno_model_weights", type=str, default='', help="Path to genotype model pre-trained weights (directory)")
+    parser.add_argument("--pheno_model_weights", type=str, default='', help="Path to phenotype model pre-trained weights")
+    parser.add_argument("--geno_tokenizer_weights", type=str, default='', help="Path to Genotype model pre-trained weights (directory)")
+    parser.add_argument("--pheno_tokenizer_weights", type=str, default='', help="Path to Genotype model pre-trained weights")
+    parser.add_argument("--hierarchy_data", type=str, default='', help="Path to hierarchy data")
+    parser.add_argument("--catalog_data", type=str, default='', help="Path to catalog data")
     # distributed training parameters
     parser.add_argument("--distributed", action='store_true', help="Enables distributed training")
     parser.add_argument('--world_size', default=1, type=int,  help='number of distributed processes')
