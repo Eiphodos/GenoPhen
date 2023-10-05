@@ -24,8 +24,8 @@ data:
     doubles: True
     forward_slash: True
     min_geno: 3
-    min_pheno: 0
+    min_ab: 0
   hierarchy:
-    use_hierarchy_data: False
+    use_hierarchy_data: True
     hierarchy_file_path: /media/david/T7/NCBI/ReferenceGeneHierarchy.txt
     catalog_file_path: /media/david/T7/NCBI/ReferenceGeneCatalog.txt
