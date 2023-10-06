@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import re
 
+
 def get_gene_trace(hdata, cdata, gene_word):
     trace = []
     # regex pattern for matching with pointwise mutations

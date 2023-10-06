@@ -9,11 +9,14 @@ def get_unique_word_list(df):
     all_words = []
     for row in df.iterrows():
         for c in df.columns:
-            if c == 'Hierarchy_data':
+            try:
+                if c == 'Hierarchy_data':
                     for g in row[1][c].split(','):
                         all_words += g.split(';')
-            else:
-                all_words += row[1][c].split(',')
+                else:
+                    all_words += row[1][c].split(',')
+            except AttributeError as ae:
+                print("Failed with error {}, column {} and row {}".format(ae, c, row))
     vocabulary = list(set(all_words))
     print("Size of vocabulary: {}".format(len(vocabulary)))
     return vocabulary
@@ -36,13 +39,14 @@ def create_corpus(cfg, dataframe):
     df_list = dataframe.values.tolist()
     corpus = []
     for r in df_list:
-        r = [a for a in r if not type(a) == float]
+        r = [str(a) for a in r if not type(a) == float]
         r = ",".join(r)
+        if cfg['data']['hierarchy']['use_hierarchy_data']:
+            r = r.replace(';', ',')
         corpus.append(r)
     with open(os.path.join(cfg['log_dir'], 'corpus.txt'), 'w') as f:
         f.writelines(c + '\n' for c in corpus)
         f.close()
-    return corpus
 
 
 def combinatorial_data_generator(cfg, dataframe):

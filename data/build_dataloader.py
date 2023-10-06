@@ -1,19 +1,24 @@
 from transformers import DataCollatorForLanguageModeling, DataCollatorWithPadding
+from data.hierarchical_datacollators import HierDataCollatorForLanguageModeling
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe, combinatorial_data_generator, weights_separated_by_label
-from data.datasets import GenoPhenoPTDataset, GenoPhenoFTDataset, GenoPhenoFTDataset_legacy
+from data.datasets import GenoPTDataset, GenoPhenoFTDataset, GenoPhenoFTDataset_legacy
 import os
 
 def build_pt_dataloaders(cfg, dataframe, tokenizer):
     train_dataframe, val_dataframe = cv_split_dataframe(cfg, dataframe)
 
-    train_dataset = GenoPhenoPTDataset(train_dataframe, tokenizer)
-    val_dataset = GenoPhenoPTDataset(val_dataframe, tokenizer)
+    train_dataset = GenoPTDataset(train_dataframe, tokenizer)
+    val_dataset = GenoPTDataset(val_dataframe, tokenizer)
 
     # Collator assumes data has been tokenized already, uses tokenizer to add padding to max batch len
-    data_collator = DataCollatorForLanguageModeling(
-        tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']
-    )
+    if cfg['data']['hierarchy']['use_hierarchy_data']:
+        data_collator = HierDataCollatorForLanguageModeling(
+            tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability'])
+    else:
+        data_collator = DataCollatorForLanguageModeling(
+            tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']
+        )
 
     train_dataloader = DataLoader(train_dataset, batch_size=cfg['data']['train_batch_size'], collate_fn=data_collator,
                                   num_workers=cfg['data']['train_n_workers'], pin_memory=cfg['data']['pin_memory'])

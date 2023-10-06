@@ -12,7 +12,8 @@ class RobertaHierarchicalEmbeddingsV1(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.word_embeddings = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id)
-        self.position_embeddings = nn.Embedding(config.max_gene_words, config.hidden_size)
+        #self.position_embeddings = nn.Embedding(config.max_position_embeddings, config.hidden_size)
+        self.gene_embeddings = nn.Embedding(config.max_genes, config.hidden_size)
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size, config.hidden_size)
 
         # self.LayerNorm is not snake-cased to stick with TensorFlow model variable name and be able to load
@@ -30,13 +31,10 @@ class RobertaHierarchicalEmbeddingsV1(nn.Module):
 
         # End copy
         self.padding_idx = config.pad_token_id
-        self.position_embeddings = nn.Embedding(
-            config.max_position_embeddings, config.hidden_size, padding_idx=self.padding_idx
-        )
 
     def forward(
-        self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0
-    ):
+        self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0,
+            hierarchy_ids=None, gene_ids=None):
         if position_ids is None:
             if input_ids is not None:
                 # Create the position ids from the input token ids. Any padded tokens remain padded.
@@ -64,16 +62,19 @@ class RobertaHierarchicalEmbeddingsV1(nn.Module):
 
         if inputs_embeds is None:
             inputs_embeds = self.word_embeddings(input_ids)
-        hierarchy_embeds = self.word_embeddings()
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
 
-        embeddings = inputs_embeds + token_type_embeddings
-        if self.position_embedding_type == "absolute":
-            position_embeddings = self.position_embeddings(position_ids)
-            embeddings += position_embeddings
+        gene_embeds = self.gene_embeddings(gene_ids)
+
+        embeddings = inputs_embeds + gene_embeds
+
+
+        #embeddings = inputs_embeds + token_type_embeddings
+
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings
+
 
     def create_position_ids_from_inputs_embeds(self, inputs_embeds):
         """

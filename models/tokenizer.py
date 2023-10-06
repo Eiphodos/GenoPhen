@@ -30,6 +30,8 @@ def create_and_train_tokenizer(cfg, dataframe):
     if cfg['tokenizer']['class'] == "RobertaTokenizer":
         tokenizer_c = RobertaTokenizer
     tokenizer = tokenizer_c.from_pretrained(cfg['log_dir'], max_length=cfg['tokenizer']['max_len'])
+    if cfg['data']['hierarchy']['use_hierarchy_data']:
+        tokenizer.add_special_tokens({'additional_special_tokens': ["<gpsep>"]})
     tokenizer.save_pretrained(save_directory=cfg['log_dir'])
 
     return tokenizer
