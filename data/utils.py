@@ -4,13 +4,16 @@ import numpy as np
 from sklearn.model_selection import KFold
 import itertools
 
+
 def get_unique_word_list(df):
     all_words = []
     for row in df.iterrows():
         for c in df.columns:
             if c == 'Hierarchy_data':
-                all_words += row[1][c].split(',').split(';')
-            all_words += row[1][c].split(',')
+                    for g in row[1][c].split(','):
+                        all_words += g.split(';')
+            else:
+                all_words += row[1][c].split(',')
     vocabulary = list(set(all_words))
     print("Size of vocabulary: {}".format(len(vocabulary)))
     return vocabulary
