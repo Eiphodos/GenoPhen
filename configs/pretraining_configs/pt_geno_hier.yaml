@@ -10,7 +10,7 @@ species:
     file_path: /media/david/T7/NCBI/Klebsiella/PDG000000012.1486.amr.metadata.tsv
 data:
   load_preprocessed_data: True
-  preprocessed_data_file_path: D:\Models\GenoPhen\Pretraining\Geno\HierarchModel\pp_data.tsv
+  preprocessed_data_file_path: /cephyr/NOBACKUP/groups/ml-e2/olzond/GenoPhen/Pretraining/Geno/RobertaForMaskedLM_2023-10-06-10_11/pp_data.tsv
   species:
     - E_Coli
   columns:
