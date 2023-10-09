@@ -95,7 +95,7 @@ def preprocess_data(cfg):
         for c in columns:
             print(df[c])
 
-    if "Hierarchy_data" in cfg['data']['columns']:
+    if cfg['data']['hierarchy']['use_hierarchy_data']:
         new_series = df['Hierarchy_data'].map(lambda x: len(x.split(',')))
         max_gene_len = new_series.max()
         idm = new_series.idxmax()
