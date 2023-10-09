@@ -95,10 +95,12 @@ def preprocess_data(cfg):
         for c in columns:
             print(df[c])
 
-    if "AMR_genotypes_core" in cfg['data']['columns']:
-        new_series = df['AMR_genotypes_core'].map(lambda x: len(x.split(',')))
+    if "Hierarchy_data" in cfg['data']['columns']:
+        new_series = df['Hierarchy_data'].map(lambda x: len(x.split(',')))
         max_gene_len = new_series.max()
+        idm = new_series.idxmax()
         print("Maximum number of genes in a isolate: {}".format(max_gene_len))
+        print("Max gene isolate: {}".format(df.iloc[idm]))
         cfg['data']['max_n_genes'] = max_gene_len
     return df
 
