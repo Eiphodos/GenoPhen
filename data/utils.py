@@ -18,7 +18,6 @@ def get_unique_word_list(df):
             except AttributeError as ae:
                 print("Failed with error {}, column {} and row {}".format(ae, c, row))
     vocabulary = list(set(all_words))
-    print("Size of vocabulary: {}".format(len(vocabulary)))
     return vocabulary
 
 

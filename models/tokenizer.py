@@ -20,10 +20,12 @@ def create_and_train_tokenizer(cfg, dataframe):
     corpus = create_corpus(cfg, dataframe)
 
     vocab = get_unique_word_list(dataframe)
+    print("Size of vocabulary before training: {}".format(len(vocab)))
     vocab = cfg['tokenizer']['special_token_list'] + vocab
 
     base_tokenizer.train(files=os.path.join(cfg['log_dir'], 'corpus.txt'), vocab_size=len(vocab), min_frequency=2,
                    special_tokens=vocab)
+    print("Size of vocabulary after training: {}".format(len(vocab)))
 
     base_tokenizer.save_model(directory=cfg['log_dir'])
 
