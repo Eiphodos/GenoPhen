@@ -8,6 +8,7 @@ def preprocess_data(cfg):
     if cfg['data']['load_preprocessed_data']:
         df = pd.read_csv(cfg['data']['preprocessed_data_file_path'], sep='\t', low_memory=False, index_col=0)
         print("Loaded dataframe with {} rows and {} columns".format(len(df), df.columns))
+        columns = df.columns
     else:
         multispecies = len(cfg['data']['species']) > 1
         df_list = []
@@ -98,9 +99,12 @@ def preprocess_data(cfg):
     if cfg['data']['hierarchy']['use_hierarchy_data']:
         new_series = df['Hierarchy_data'].map(lambda x: len(x.split(',')))
         max_gene_len = new_series.max()
-        idm = new_series.idxmax()
         print("Maximum number of genes in a isolate: {}".format(max_gene_len))
-        print("Max gene isolate: {}".format(df.iloc[idm]))
+        cfg['data']['max_n_genes'] = max_gene_len
+    elif "AMR_genotypes_core" in columns:
+        new_series = df['AMR_genotypes_core'].map(lambda x: len(x.split(',')))
+        max_gene_len = new_series.max()
+        print("Maximum number of genes in a isolate: {}".format(max_gene_len))
         cfg['data']['max_n_genes'] = max_gene_len
     return df
 
