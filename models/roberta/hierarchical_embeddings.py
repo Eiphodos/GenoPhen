@@ -64,6 +64,9 @@ class RobertaHierarchicalEmbeddingsV1(nn.Module):
             inputs_embeds = self.word_embeddings(input_ids)
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
 
+        print("Maximum input id: {}".format(input_ids.max()))
+        print("Maximum gene id: {}".format(gene_ids.max()))
+
         gene_embeds = self.gene_embeddings(gene_ids)
 
         embeddings = inputs_embeds + gene_embeds

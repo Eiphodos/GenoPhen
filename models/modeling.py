@@ -22,6 +22,7 @@ def build_pt_model(cfg, tokenizer):
 
     if cfg['model']['class'] == 'RobertaHierForMaskedLM':
         m_config = RobertaConfig(vocab_size=tokenizer.vocab_size,
+                                              max_position_embeddings=50,
                                               max_genes=cfg['data']['max_n_genes'] + 1,
                                               num_attention_heads=cfg['model']['n_attention_heads'],
                                               num_hidden_layers=cfg['model']['n_hidden_layers'],
