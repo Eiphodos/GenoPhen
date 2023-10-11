@@ -9,8 +9,8 @@ species:
   Kleb:
     file_path: /media/david/T7/NCBI/Klebsiella/PDG000000012.1486.amr.metadata.tsv
 data:
-  load_preprocessed_data: False
-  preprocessed_data_file_path: D:\Models\GenoPhen\Pretraining\Geno\HierarchModel\pp_data.tsv
+  load_preprocessed_data: True
+  preprocessed_data_file_path: /cephyr/NOBACKUP/groups/ml-e2/olzond/GenoPhen/Pretraining/Geno/RobertaHierForMaskedLM_2023-10-11-13_21/pp_data.tsv
   species:
     - E_Coli
   columns:
