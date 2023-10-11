@@ -29,8 +29,9 @@ def masked_softmax(X, valid_lens):
             valid_lens = valid_lens.reshape(-1)
         # On the last axis, replace masked elements with a very large negative
         # value, whose exponentiation outputs 0
+        value = -1e+25 if X.dtype == torch.float32 else -1e+4
         X = sequence_mask(X.reshape(-1, shape[-1]), valid_lens,
-                              value=-1e4)
+                              value=value)
         return nn.functional.softmax(X.reshape(shape), dim=-1)
 
 
