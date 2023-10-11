@@ -62,7 +62,7 @@ def main(args):
     model.to(device)
     model_without_ddp = model
     print("Model = %s" % str(model_without_ddp))
-    if args.distributed:
+    if dist_misc.is_dist_avail_and_initialized():
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
         model_without_ddp = model.module
@@ -108,7 +108,7 @@ def main(args):
             scheduler.step()
             optimizer.zero_grad()
             train_loss.update(loss.detach())
-        te_loss = sync_and_compute(train_loss) if args.distributed else train_loss.compute()
+        te_loss = sync_and_compute(train_loss) if dist_misc.is_dist_avail_and_initialized() else train_loss.compute()
         if args.wandb_logging:
             wandb.log({'Training epoch avg loss': te_loss, "Epoch": e})
         print("Mean training loss for epoch {}/{} is: {}".format(e, cfg['training']['n_epochs'], te_loss))
@@ -139,7 +139,7 @@ def main(args):
                     if ve_acc > best_val_metric:
                         best_val_metric = ve_acc
                         if dist_misc.is_main_process():
-                            if cfg.distributed:
+                            if dist_misc.is_dist_avail_and_initialized():
                                 model.module.save_pretrained(cfg['log_dir'])
                             else:
                                 model.save_pretrained(cfg['log_dir'])
@@ -153,11 +153,11 @@ def main(args):
                 print("Mean validation accuracy (oskar) for epoch {}/{} is: {}".format(e, cfg['training']['n_epochs'], acc_oskar))
                 val_loss.reset()
                 val_acc.reset()
-            if args.distributed:
+            if dist_misc.is_dist_avail_and_initialized():
                 dist.barrier()
 
     if dist_misc.is_main_process():
-        if cfg.distributed:
+        if dist_misc.is_dist_avail_and_initialized():
             model.module.save_pretrained(cfg['log_dir'])
         else:
             model.save_pretrained(cfg['log_dir'])
