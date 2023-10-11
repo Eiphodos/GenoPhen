@@ -35,11 +35,6 @@ def preprocess_data(cfg):
             df = df[~df["target_creation_date"].isnull()]
             print("NULL DATE: Dataframe with {} rows".format(len(df)))
 
-        if cfg['data']['hierarchy']['use_hierarchy_data'] and "AMR_genotypes_core" in columns:
-            df = build_hierarchy_data(cfg, df)
-            columns.append("Hierarchy_data")
-            print(df["Hierarchy_data"].iloc[0:5])
-
         print("Example rows before filters: \n")
         for c in columns:
             print(df[c])
