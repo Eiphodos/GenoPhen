@@ -30,7 +30,7 @@ def masked_softmax(X, valid_lens):
         # On the last axis, replace masked elements with a very large negative
         # value, whose exponentiation outputs 0
         X = sequence_mask(X.reshape(-1, shape[-1]), valid_lens,
-                              value=-1e6)
+                              value=-1e4)
         return nn.functional.softmax(X.reshape(shape), dim=-1)
 
 
