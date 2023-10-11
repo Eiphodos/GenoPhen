@@ -32,7 +32,8 @@ data:
     hmm: True
     bla: True
     aph_aac: True
-    doubles: True
+    doubles_pheno: True
+    doubles_geno: False
     forward_slash: True
     min_geno: 1
     min_ab: 1

@@ -1,5 +1,5 @@
 from transformers import DataCollatorForLanguageModeling, DataCollatorWithPadding
-from data.hierarchical_datacollators import HierDataCollatorForLanguageModeling
+from data.hierarchical_datacollators import HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe, combinatorial_data_generator, weights_separated_by_label
 from data.datasets import GenoPTDataset, GenoPhenoFTDataset, GenoPhenoFTDataset_legacy
@@ -57,7 +57,10 @@ def build_ft_legacy_dataloaders(cfg, dataframe, tokenizer_geno, tokenizer_pheno)
     train_dataset = GenoPhenoFTDataset_legacy(cfg, comb_train_dataframe, tokenizer_geno, tokenizer_pheno)
     val_dataset = GenoPhenoFTDataset_legacy(cfg, comb_val_dataframe, tokenizer_geno, tokenizer_pheno)
 
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer_geno)
+    if cfg['data']['hierarchy']['use_hierarchy_data']:
+        data_collator = HierDataCollatorWithPadding(tokenizer=tokenizer_geno)
+    else:
+        data_collator = DataCollatorWithPadding(tokenizer=tokenizer_geno)
     train_dataloader = DataLoader(train_dataset, batch_size=cfg['data']['train_batch_size'], collate_fn=data_collator,
                                   num_workers=cfg['data']['train_n_workers'], pin_memory=cfg['data']['pin_memory'])
     val_dataloader = DataLoader(val_dataset, batch_size=cfg['data']['val_batch_size'], collate_fn=data_collator,

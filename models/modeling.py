@@ -47,6 +47,20 @@ def build_ft_legacy_model(cfg, tokenizer_geno, train_dataloader, val_dataloader)
                 geno_model = RobertaModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
             else:
                 geno_model = RobertaModel(geno_m_config)
+        elif cfg['model']['geno']['class'] == 'RobertaHierModel':
+            geno_m_config = RobertaConfig(vocab_size=tokenizer_geno.vocab_size,
+                                     max_position_embeddings=50,
+                                     max_genes=cfg['data']['max_n_genes'] + 1,
+                                     num_attention_heads=cfg['model']['geno']['n_attention_heads'],
+                                     num_hidden_layers=cfg['model']['geno']['n_hidden_layers'],
+                                     type_vocab_size=1,
+                                     hidden_size=cfg['model']['geno']['hidden_size'])
+            emb = RobertaHierarchicalEmbeddingsV1(config=geno_m_config)
+            if cfg['model']['geno']['use_pretrained']:
+                geno_model = RobertaHierModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
+            else:
+                geno_model = RobertaHierModel(geno_m_config, emb)
+
         geno_model.to(cfg['device'])
 
         if cfg['model']['pheno']['class'] == 'AntibioticModelTrain':
@@ -63,7 +77,6 @@ def build_ft_legacy_model(cfg, tokenizer_geno, train_dataloader, val_dataloader)
                                       value_size=cfg['model']['pheno']['value_size'],
                                       number_ab=len(cfg['antibiotics']['antibiotics_in_use']))
             pheno_encoder.to(cfg['device'])
-
 
             optimizer = torch.optim.Adam(
                 list(geno_model.parameters()) + list(pheno_encoder.parameters()),

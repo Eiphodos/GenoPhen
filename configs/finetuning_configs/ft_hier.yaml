@@ -5,6 +5,8 @@ training:
 optimizer:
   lr: 0.000001
 data:
+  load_preprocessed_data: False
+  preprocessed_data_file_path: D:\Models\GenoPhen\Pretraining\Geno\PT_Hier\pp_data.tsv
   species:
     - E_Coli
   columns:
@@ -24,3 +26,7 @@ data:
     min_ab: 4
   known_ab: 3
   known_gene: -1
+  hierarchy:
+    use_hierarchy_data: True
+    hierarchy_file_path: /media/david/T7/NCBI/ReferenceGeneHierarchy.txt
+    catalog_file_path: /media/david/T7/NCBI/ReferenceGeneCatalog.txt

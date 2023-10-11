@@ -101,14 +101,29 @@ class GenoPhenoFTDataset_legacy(Dataset):
 
     def __getitem__(self, idx):
         sample_data = self.data.iloc[idx]
-        geno_x = sample_data['AMR_genotypes_core']
+        data_dict = {}
+
+        ### Get Genotype data ###
+        if 'Hierarchy_data' in self.data.columns:
+            geno_x = sample_data['Hierarchy_data']
+            geno_x = geno_x.split(',')
+            n_genes = len(geno_x)
+            h = [h.split(';') + ['<gpsep>'] for h in geno_x]
+            gi = [[i+1] * len(h[i]) for i in range(n_genes)]
+            flat_h = [a for b in h for a in b]
+            flat_gi = [a for b in gi for a in b]
+            gene_words = flat_h
+            data_dict['gene_ids'] = [1] + flat_gi + [n_genes]
+        else:
+            geno_x = sample_data['AMR_genotypes_core']
+            gene_words = geno_x.split(',')
+            random.shuffle(gene_words)
+        amr = self.tokenizer_geno.encode(gene_words)
+        data_dict['input_ids'] = amr
+
+        ### Get Phenotype data ###
         ab_x = sample_data['AST_phenotypes_x']
         ab_y = sample_data['AST_phenotypes_y']
-        gene_words = geno_x.split(',')
-        #ab_x = ab_x.split(',')
-        #ab_y = ab_y.split(',')
-        random.shuffle(gene_words)
-
         meta_data = []
         if 'geo_loc_name' in self.data.columns:
             meta_data.append(sample_data['geo_loc_name'])
@@ -127,34 +142,33 @@ class GenoPhenoFTDataset_legacy(Dataset):
 
         x = ['<cls>'] + meta_data + ['<sep>'] + ab_x + (
                     (self.max_total_ab - len(ab_x)) * ['<pad>'])  # the metadata and antibiotics known
-
         x = self.tokenizer_pheno(x)
-        total_len_x = len(ab_x) + 2 + len(meta_data)  # +5 is due to the 4 metadata entries and the cls entry
+        data_dict['ab'] = x
 
+        ### Get AB positions ###
+        total_len_x = len(ab_x) + 2 + len(meta_data)  # +5 is due to the 4 metadata entries and the cls entry
         x_pos_antibiotic = self.get_ab_pos(ab_x, "x")[0:self.max_total_ab]  # the position of the antibiotics in abbreviation list
         y_pos_antibiotic = self.get_ab_pos(ab_y, "y")[0:self.max_unknown_ab]
+        data_dict['x pos ab'] = x_pos_antibiotic
+        data_dict['y pos ab'] = y_pos_antibiotic
+        data_dict['total len x'] = total_len_x
 
+        ### Get AB representations ###
         x_resp = self.get_ab_resp(ab_x, "x")[0:self.max_total_ab]  # numeric interpretation of each r and s
         y_resp = self.get_ab_resp(ab_y, "y")[0:self.max_unknown_ab]
+        data_dict['x resp'] = x_resp
+        data_dict['y resp'] = y_resp
 
+        ### Get AB lengths ###
         len_x = len(ab_x)
         len_y = len(ab_y)
-
         if len_y > self.max_unknown_ab:  # some exceptions were found with more than 8 unknown
             print("Found example with more than {} unknown! {}".format(self.max_unknown_ab, ab_y))
             len_y = self.max_unknown_ab
+        data_dict['len x'] = len_x
+        data_dict['len y'] = len_y
 
-        amr = self.tokenizer_geno.encode(gene_words)
-
-        return {'input_ids': amr,  # genotype data
-                "ab": x,  # phenotype data
-                'x pos ab': x_pos_antibiotic,
-                'y pos ab': y_pos_antibiotic,
-                'x resp': x_resp,
-                'y resp': y_resp,
-                'len x': len_x,
-                'len y': len_y,
-                "total len x": total_len_x}
+        return data_dict
 
     def get_ab_pos(self, ab_list, letter):  # letter indicates if ab is known (x) or unknown (y)
         pos_list = []

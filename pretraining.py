@@ -76,11 +76,13 @@ def main(args):
                                            optimizer=optimizer,
                                            num_warmup_steps=0,
                                            num_training_steps=n_training_steps)
+    scaler = torch.cuda.amp.GradScaler(enabled=cfg['mixed_precision'])
 
     ### Setup metrics ###
     val_acc = MulticlassAccuracy(device=device)
     train_loss = Mean(device=device)
     val_loss = Mean(device=device)
+    best_val_metric = 0.0
 
     ### Check if resuming ###
     # TODO: Implement resuming
@@ -97,10 +99,12 @@ def main(args):
         model.train()
         for j, batch in enumerate(train_dataloader):
             batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = model(**batch)
-            loss = outputs.loss
-            loss.backward()
-            optimizer.step()
+            with torch.cuda.amp.autocast(enabled=cfg['mixed_precision']):
+                outputs = model(**batch)
+                loss = outputs.loss
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             scheduler.step()
             optimizer.zero_grad()
             train_loss.update(loss.detach())
@@ -117,9 +121,9 @@ def main(args):
                 with torch.no_grad():
                     for i, batch in enumerate(val_dataloader):
                         batch = {k: v.to(device) for k, v in batch.items()}
-                        outputs = model(**batch)
-
-                        loss = outputs.loss
+                        with torch.cuda.amp.autocast(enabled=cfg['mixed_precision']):
+                            outputs = model(**batch)
+                            loss = outputs.loss
                         val_loss.update(loss)
                         predictions = torch.argmax(outputs.logits, dim=-1)
 
@@ -130,9 +134,16 @@ def main(args):
                         val_acc_tot += acc2
                         val_acc_n += 1
 
-
                     ve_loss = val_loss.compute()
                     ve_acc = val_acc.compute()
+                    if ve_acc > best_val_metric:
+                        best_val_metric = ve_acc
+                        if dist_misc.is_main_process():
+                            if cfg.distributed:
+                                model.module.save_pretrained(cfg['log_dir'])
+                            else:
+                                model.save_pretrained(cfg['log_dir'])
+                            tokenizer.save_pretrained(cfg['log_dir'])
                 acc_oskar = val_acc_tot / val_acc_n
                 if args.wandb_logging:
                     wandb.log({'Validation epoch loss': ve_loss,
@@ -146,7 +157,10 @@ def main(args):
                 dist.barrier()
 
     if dist_misc.is_main_process():
-        model.save_pretrained(cfg['log_dir'])
+        if cfg.distributed:
+            model.module.save_pretrained(cfg['log_dir'])
+        else:
+            model.save_pretrained(cfg['log_dir'])
         tokenizer.save_pretrained(cfg['log_dir'])
 
 if __name__ == '__main__':
@@ -170,6 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('--dist_url', default='env://',  help='url used to set up distributed training')
     parser.add_argument('--dist_backend', default='nccl',  help='Backend to use for distributed training')
     # Other settings
+    parser.add_argument("--mixed_precision", action='store_true', help="Enables FP16")
     parser.add_argument("--ft_config", type=str, default='', help="Name of config")
     parser.add_argument("--pt_config", type=str, default='', help="Name of config")
     parser.add_argument("--model_config", type=str, help="Name of config")

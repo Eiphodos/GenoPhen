@@ -4,6 +4,7 @@ import transformers
 from models.roberta.tokenization_roberta import RobertaTokenizer
 from data.utils import get_unique_word_list, create_corpus
 
+
 def build_tokenizer(cfg, dataframe):
     if cfg['tokenizer']['use_pretrained']:
         if cfg['tokenizer']['class'] == "RobertaTokenizer":

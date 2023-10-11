@@ -97,6 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('--dist_url', default='env://',  help='url used to set up distributed training')
     parser.add_argument('--dist_backend', default='nccl',  help='Backend to use for distributed training')
     # Other settings
+    parser.add_argument("--mixed_precision", action='store_true', help="Enables FP16")
     parser.add_argument("--ft_config", type=str, default='', help="Name of config")
     parser.add_argument("--pt_config", type=str, default='', help="Name of config")
     parser.add_argument("--model_config", type=str, default='', help="Name of config")

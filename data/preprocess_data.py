@@ -40,23 +40,11 @@ def preprocess_data(cfg):
             columns.append("Hierarchy_data")
             print(df["Hierarchy_data"].iloc[0:5])
 
-        if "AST_phenotypes" in columns:
-            df = clean_pheno_data(cfg, df)
-            print("CLEAN PHENO: Dataframe with {} rows".format(len(df)))
-        if "AMR_genotypes_core" in columns:
-            df = clean_geno_data(cfg, df)
-            print("CLEAN GENO: Dataframe with {} rows".format(len(df)))
-        if "target_creation_date" in columns:
-            df = clean_date_data(cfg, df)
-            print("CLEAN DATE: Dataframe with {} rows".format(len(df)))
-
         print("Example rows before filters: \n")
         for c in columns:
             print(df[c])
 
-        if "geo_loc_name" in columns:
-            df['geo_loc_name'] = df['geo_loc_name'].map(lambda x: x.split(":")[0] if type(x) is str else x) # Remove suffixes from location
-
+        ### FILTERS ###
         if "AMR_genotypes_core" in columns and cfg['data']['filter']['point']:
             df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
                 lambda x: ','.join([a for a in x.split(',') if '=POINT' not in a]))
@@ -77,19 +65,39 @@ def preprocess_data(cfg):
             df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
                 lambda x: ','.join([a for a in x.split(',') if '=HMM' not in a]))
             print("FILTER HMM: Dataframe with {} rows".format(len(df)))
-        if "AMR_genotypes_core" in columns and cfg['data']['filter']['bla']:
-            df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
-                lambda x: ','.join([remove_last_digits(a) if a[0:3] == 'bla' else a for a in x.split(',')]))
-            print("FILTER BLA: Dataframe with {} rows".format(len(df)))
-        if "AMR_genotypes_core" in columns and cfg['data']['filter']['aph_aac']:
-            df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(filter_aap_aac)
-            print("FILTER APH_AAC: Dataframe with {} rows".format(len(df)))
         if "AMR_genotypes_core" in columns and cfg['data']['filter']['min_geno'] > 0:
             df = df[df['AMR_genotypes_core'].apply(filter_len, min_length=cfg['data']['filter']['min_geno'])]
             print("FILTER GENO LEN: Dataframe with {} rows".format(len(df)))
         if "AST_phenotypes" in columns and cfg['data']['filter']['min_ab'] > 0:
             df = df[df['AST_phenotypes'].apply(filter_len, min_length=cfg['data']['filter']['min_ab'])]
             print("FILTER AB LEN: Dataframe with {} rows".format(len(df)))
+        print("FILTERED: Dataframe with {} rows and {} columns".format(len(df), df.columns))
+
+        ### BUILD HIERARCHY ###
+        if cfg['data']['hierarchy']['use_hierarchy_data'] and "AMR_genotypes_core" in columns:
+            df = build_hierarchy_data(cfg, df)
+            columns.append("Hierarchy_data")
+            print(df["Hierarchy_data"].iloc[0:5])
+
+        ### CLEANING ###
+        if "AMR_genotypes_core" in columns and cfg['data']['filter']['bla']:
+            df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(
+                lambda x: ','.join([remove_last_digits(a) if a[0:3] == 'bla' else a for a in x.split(',')]))
+            print("FILTER BLA: Dataframe with {} rows".format(len(df)))
+        if "AMR_genotypes_core" in columns and cfg['data']['filter']['aph_aac']:
+            df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(clean_aap_aac)
+            print("FILTER APH_AAC: Dataframe with {} rows".format(len(df)))
+        if "AST_phenotypes" in columns:
+            df = clean_pheno_data(cfg, df)
+            print("CLEAN PHENO: Dataframe with {} rows".format(len(df)))
+        if "AMR_genotypes_core" in columns:
+            df = clean_geno_data(cfg, df)
+            print("CLEAN GENO: Dataframe with {} rows".format(len(df)))
+        if "geo_loc_name" in columns:
+            df['geo_loc_name'] = df['geo_loc_name'].map(lambda x: x.split(":")[0] if type(x) is str else x) # Remove suffixes from location
+        if "target_creation_date" in columns:
+            df = clean_date_data(cfg, df)
+            print("CLEAN DATE: Dataframe with {} rows".format(len(df)))
 
         print("FINAL: Dataframe with {} rows and {} columns".format(len(df), df.columns))
         print("Example rows after filters: \n")
@@ -109,7 +117,7 @@ def preprocess_data(cfg):
     return df
 
 
-def filter_aap_aac(x):
+def clean_aap_aac(x):
     interesting_genes = ["aph", "aac"]
     roman_numbers = ["I", "V", "X"]
 
@@ -159,8 +167,13 @@ def remove_last_non_digit(x):
     return re.sub(r"[^0-9IVX]$", "", x)
 
 
-def remove_duplicates(x):
+def remove_pheno_duplicates(x):
     all_items = pd.DataFrame([a.split('=') for a in x.split(',')]) # Splits sequence of AB resistances and creates dataframe
+    all_items.drop_duplicates(subset=[0], inplace=True, keep=False) # Deletes duplicates based on AB name
+    return ",".join(["=".join(a) for a in all_items.values.tolist()]) # Joins into list again
+
+def remove_geno_duplicates(x):
+    all_items = pd.DataFrame([a for a in x.split(',')]) # Splits sequence of AB resistances and creates dataframe
     all_items.drop_duplicates(subset=[0], inplace=True, keep=False) # Deletes duplicates based on AB name
     return ",".join(["=".join(a) for a in all_items.values.tolist()]) # Joins into list again
 
@@ -173,8 +186,8 @@ def convert_ab_to_abbrev(x, cfg):
 
 def clean_pheno_data(cfg, df):
     df['AST_phenotypes'] = df['AST_phenotypes'].map(lambda x: ','.join([a.lower() for a in x.split(',') if a[-1] == "R" or a[-1] == "S"])) #Remove all resistances that are not R or S
-    if cfg['data']['filter']['doubles']:
-        df['AST_phenotypes'] = df['AST_phenotypes'].map(remove_duplicates)
+    if cfg['data']['filter']['doubles_pheno']:
+        df['AST_phenotypes'] = df['AST_phenotypes'].map(remove_pheno_duplicates)
     df['AST_phenotypes'] = df['AST_phenotypes'].apply(convert_ab_to_abbrev, cfg=cfg)
     return df
 
@@ -182,6 +195,8 @@ def clean_pheno_data(cfg, df):
 def clean_geno_data(cfg, df):
     df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(lambda x: x.replace("''", "b")) # Replace biss with b
     df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(lambda x: x.replace("'", "p")) # Replace prime with p
+    if cfg['data']['filter']['doubles_geno']:
+        df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(remove_geno_duplicates)
     return df
 
 

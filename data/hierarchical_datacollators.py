@@ -212,7 +212,7 @@ def numpy_default_data_collator(features: List[InputDataClass]) -> Dict[str, Any
 
 
 @dataclass
-class DataCollatorWithPadding:
+class HierDataCollatorWithPadding:
     """
     Data collator that will dynamically pad the inputs received.
 
@@ -738,7 +738,7 @@ class HierDataCollatorForLanguageModeling(DataCollatorMixin):
             batch = {
                 "input_ids": _torch_collate_batch(examples, self.tokenizer, pad_to_multiple_of=self.pad_to_multiple_of)
             }
-        gene_ids = [torch.LongTensor(v['gene_ids']) for v in gene_ids]
+        gene_ids = [torch.IntTensor(v['gene_ids']) for v in gene_ids]
         gene_ids = torch.nn.utils.rnn.pad_sequence(gene_ids, batch_first=True, padding_value=0.0)
         batch['gene_ids'] = gene_ids
         # If special token mask has been preprocessed, pop it from the dict.

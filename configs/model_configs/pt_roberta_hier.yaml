@@ -6,7 +6,7 @@ model:
 tokenizer:
   use_pretrained: False
   class: RobertaTokenizer
-  max_len: 250
+  max_len: 256
   special_token_list:
     - <s>
     - <pad>

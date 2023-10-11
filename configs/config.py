@@ -44,6 +44,7 @@ def build_config(args, mode='finetuning'):
         config['tokenizer']['pheno']['pretrained_weights'] = args.pheno_tokenizer_weights
 
     config['log_dir'] = args.log_dir
+    config['mixed_precision'] = args.mixed_precision
     config['data']['hierarchy']['hierarchy_file_path'] = args.hierarchy_data
     config['data']['hierarchy']['catalog_file_path'] = args.catalog_data
     for s in config['data']['species']:

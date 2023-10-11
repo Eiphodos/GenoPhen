@@ -37,6 +37,8 @@ class IntegratedModel:
 
         self.acc = [ast_accuracy_2 for _ in range(self.number_ab)]
         self.train_dataloader = train_dataloader
+        self.mixed_precision = cfg['mixed_precision']
+        self.scaler = torch.cuda.amp.GradScaler(enabled=cfg['mixed_precision'])
 
         long_param_list = []
         for i in range(len(self.abpred)):
