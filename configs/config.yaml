@@ -5,7 +5,7 @@ optimizer:
   weight_decay: 0
 training:
   n_epochs: 100
-  val_every_n_epochs: 1
+  val_every_n_epochs: 10
 data:
   load_preprocessed_data: False
   preprocessed_data_file_path: D:\Models\GenoPhen\Pretraining\Geno\HierarchModel\pp_data.tsv
