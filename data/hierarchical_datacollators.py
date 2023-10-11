@@ -18,7 +18,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from random import randint
 from typing import Any, Callable, Dict, List, NewType, Optional, Tuple, Union
-
+import torch
 import numpy as np
 
 from transformers.models.bert import BertTokenizer, BertTokenizerFast
@@ -246,6 +246,9 @@ class HierDataCollatorWithPadding:
     return_tensors: str = "pt"
 
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+        if 'gene_ids' in features.keys():
+            gene_ids = [{'gene_ids': v.pop('gene_ids')} for v in features]
         batch = self.tokenizer.pad(
             features,
             padding=self.padding,
@@ -259,6 +262,10 @@ class HierDataCollatorWithPadding:
         if "label_ids" in batch:
             batch["labels"] = batch["label_ids"]
             del batch["label_ids"]
+        if 'gene_ids' in features.keys():
+            gene_ids = [torch.IntTensor(v['gene_ids']) for v in gene_ids]
+            gene_ids = torch.nn.utils.rnn.pad_sequence(gene_ids, batch_first=True, padding_value=0.0)
+            batch['gene_ids'] = gene_ids
         return batch
 
 
