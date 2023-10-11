@@ -139,10 +139,20 @@ def main(args):
                     if ve_acc > best_val_metric:
                         best_val_metric = ve_acc
                         if dist_misc.is_main_process():
+                            to_save = {
+                                'optimizer': optimizer.state_dict(),
+                                'scaler': scaler.state_dict(),
+                                'scheduler': scheduler.state_dict(),
+                                'epoch': e
+                            }
                             if dist_misc.is_dist_avail_and_initialized():
-                                model.module.save_pretrained(cfg['log_dir'])
+                                # model.module.save_pretrained(cfg['log_dir'])
+                                to_save['model'] = model.module.state_dict()
+
                             else:
-                                model.save_pretrained(cfg['log_dir'])
+                                # model.save_pretrained(cfg['log_dir'])
+                                to_save['model'] = model.state_dict()
+                            torch.save(to_save, os.path.join(cfg['log_dir'], 'best_model_epoch_{}.pth'.format(e)))
                             tokenizer.save_pretrained(cfg['log_dir'])
                 acc_oskar = val_acc_tot / val_acc_n
                 if args.wandb_logging:
@@ -157,10 +167,20 @@ def main(args):
                 dist.barrier()
 
     if dist_misc.is_main_process():
+        to_save = {
+            'optimizer': optimizer.state_dict(),
+            'scaler': scaler.state_dict(),
+            'scheduler': scheduler.state_dict(),
+            'epoch': e
+        }
         if dist_misc.is_dist_avail_and_initialized():
-            model.module.save_pretrained(cfg['log_dir'])
+            #model.module.save_pretrained(cfg['log_dir'])
+            to_save['model'] = model.module.state_dict()
+
         else:
-            model.save_pretrained(cfg['log_dir'])
+            #model.save_pretrained(cfg['log_dir'])
+            to_save['model'] = model.state_dict()
+        torch.save(to_save, os.path.join(cfg['log_dir'], 'final_model.pth'))
         tokenizer.save_pretrained(cfg['log_dir'])
 
 if __name__ == '__main__':

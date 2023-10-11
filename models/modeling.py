@@ -44,7 +44,21 @@ def build_ft_legacy_model(cfg, tokenizer_geno, train_dataloader, val_dataloader)
                                                   type_vocab_size=1,
                                                   hidden_size=cfg['model']['geno']['hidden_size'])
             if cfg['model']['geno']['use_pretrained']:
-                geno_model = RobertaModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
+                if cfg['model']['geno']['pretrained_weights'][-4:] == '.pth':
+                    sd = torch.load(cfg['model']['geno']['pretrained_weights'], map_location='cpu')
+                    model_sd = sd['model']
+                    if "module." in list(model_sd.keys())[0]:
+                        print("Tag 'module.' found in state dict - fixing!")
+                        for key in list(model_sd.keys()):
+                            model_sd[key.replace("module.", "")] = model_sd.pop(key)
+                    if "roberta." in list(model_sd.keys())[0]:
+                        print("Tag 'roberta.' found in state dict - fixing!")
+                        for key in list(model_sd.keys()):
+                            model_sd[key.replace("roberta.", "")] = model_sd.pop(key)
+                    geno_model = RobertaModel(geno_m_config)
+                    geno_model.load_state_dict(model_sd, strict=False)
+                else:
+                    geno_model = RobertaModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
             else:
                 geno_model = RobertaModel(geno_m_config)
         elif cfg['model']['geno']['class'] == 'RobertaHierModel':
@@ -57,7 +71,21 @@ def build_ft_legacy_model(cfg, tokenizer_geno, train_dataloader, val_dataloader)
                                      hidden_size=cfg['model']['geno']['hidden_size'])
             emb = RobertaHierarchicalEmbeddingsV1(config=geno_m_config)
             if cfg['model']['geno']['use_pretrained']:
-                geno_model = RobertaHierModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
+                if cfg['model']['geno']['pretrained_weights'][-4:] == '.pth':
+                    sd = torch.load(cfg['model']['geno']['pretrained_weights'], map_location='cpu')
+                    model_sd = sd['model']
+                    if "module." in list(model_sd.keys())[0]:
+                        print("Tag 'module.' found in state dict - fixing!")
+                        for key in list(model_sd.keys()):
+                            model_sd[key.replace("module.", "")] = model_sd.pop(key)
+                    if "roberta." in list(model_sd.keys())[0]:
+                        print("Tag 'roberta.' found in state dict - fixing!")
+                        for key in list(model_sd.keys()):
+                            model_sd[key.replace("roberta.", "")] = model_sd.pop(key)
+                    geno_model = RobertaHierModel(geno_m_config, emb)
+                    geno_model.load_state_dict(model_sd, strict=False)
+                else:
+                    geno_model = RobertaHierModel.from_pretrained(cfg['model']['geno']['pretrained_weights'], geno_m_config)
             else:
                 geno_model = RobertaHierModel(geno_m_config, emb)
 
