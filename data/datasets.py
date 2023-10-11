@@ -118,6 +118,7 @@ class GenoPhenoFTDataset_legacy(Dataset):
             geno_x = sample_data['AMR_genotypes_core']
             gene_words = geno_x.split(',')
             random.shuffle(gene_words)
+            data_dict['gene_ids'] = None
         amr = self.tokenizer_geno.encode(gene_words)
         data_dict['input_ids'] = amr
 
