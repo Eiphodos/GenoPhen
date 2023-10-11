@@ -237,7 +237,8 @@ class IntegratedModel:
             loss = loss_y  # + loss_x
 
             # Backward Pass
-            loss.backward()
+            #loss.backward()
+            self.scaler.scale(loss).backward()
             train_loss += loss.item()
 
             acc_tot += acc
@@ -263,7 +264,9 @@ class IntegratedModel:
             n_batch = self.n_batches_train
             self.train_counter += 1
             # Update the Weights
-            self.optimizer.step()
+            #self.optimizer.step()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
         self.epoch += 1
         if self.scheduler:
             self.scheduler.step()

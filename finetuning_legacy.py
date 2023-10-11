@@ -69,7 +69,8 @@ def main(args):
     save_config(cfg)
 
     print("Starting training...")
-    model.train(cfg['training']['n_epochs'])
+    with torch.cuda.amp.autocast(enabled=cfg['mixed_precision']):
+        model.train(cfg['training']['n_epochs'])
 
     if dist_misc.is_main_process():
         model.save_pretrained(cfg['log_dir'])
