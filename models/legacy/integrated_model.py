@@ -73,7 +73,7 @@ class IntegratedModel:
                 attention_mask, gene_ids):
         input_ids = input_ids.to(self.device)
         attention_mask = attention_mask.to(self.device)
-        if gene_ids is None:
+        if torch.isnan(gene_ids).any():
             outputs = self.geno_model(input_ids=input_ids, attention_mask=attention_mask)  # index out of range of self
         else:
             outputs = self.geno_model(input_ids=input_ids, attention_mask=attention_mask, gene_ids=gene_ids)  # index out of range of self
