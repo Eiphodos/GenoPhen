@@ -170,7 +170,6 @@ class GenoPhenoFTDataset_legacy(Dataset):
         data_dict['len x'] = len_x
         data_dict['len y'] = len_y
 
-        print(data_dict)
         return data_dict
 
     def get_ab_pos(self, ab_list, letter):  # letter indicates if ab is known (x) or unknown (y)
