@@ -1,5 +1,5 @@
 from transformers import DataCollatorForLanguageModeling, DataCollatorWithPadding
-from data.hierarchical_datacollators import HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding, HierSumDataCollatorForLanguageModeling
+from data.hierarchical_datacollators import HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding, HierSumDataCollatorForLanguageModeling, HierSumDataCollatorWithPadding
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe, combinatorial_data_generator, weights_separated_by_label
 from data.datasets import GenoPTDataset, GenoPhenoFTDataset_legacy
@@ -68,7 +68,10 @@ def build_ft_legacy_dataloaders(cfg, dataframe, tokenizer_geno, tokenizer_pheno)
     val_dataset = GenoPhenoFTDataset_legacy(cfg, comb_val_dataframe, tokenizer_geno, tokenizer_pheno)
 
     if cfg['data']['hierarchy']['use_hierarchy_data']:
-        data_collator = HierDataCollatorWithPadding(tokenizer=tokenizer_geno)
+        if cfg['data']['hierarchy']['hierarchy_version'] == 'summed':
+            data_collator = HierSumDataCollatorWithPadding(tokenizer=tokenizer_geno)
+        elif cfg['data']['hierarchy']['hierarchy_version'] == 'separate':
+            data_collator = HierDataCollatorWithPadding(tokenizer=tokenizer_geno)
     else:
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer_geno)
     train_dataloader = DataLoader(train_dataset, batch_size=cfg['data']['train_batch_size'], collate_fn=data_collator,

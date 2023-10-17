@@ -68,7 +68,7 @@ class GenoPTDataset(Dataset):
 
 
 class GenoPhenoFTDataset_legacy(Dataset):
-    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno):
+    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno, hierarchy_version=None):
         self.ab_index_list = cfg['antibiotics']['index_list']
         self.tokenizer_geno = tokenizer_geno
         # self.labels = labels
@@ -77,6 +77,7 @@ class GenoPhenoFTDataset_legacy(Dataset):
         self.test_count = 0
         self.max_unknown_ab = 9
         self.max_total_ab = 14
+        self.hierarchy_version = hierarchy_version
 
     def __len__(self):
         return len(self.data)
@@ -86,16 +87,25 @@ class GenoPhenoFTDataset_legacy(Dataset):
         data_dict = {}
 
         ### Get Genotype data ###
-        if 'Hierarchy_data' in self.data.columns:
-            geno_x = sample_data['Hierarchy_data']
-            geno_x = geno_x.split(',')
-            n_genes = len(geno_x)
-            h = [h.split(';') + ['<gpsep>'] for h in geno_x]
-            gi = [[i+1] * len(h[i]) for i in range(n_genes)]
-            flat_h = [a for b in h for a in b]
-            flat_gi = [a for b in gi for a in b]
-            gene_words = flat_h
-            data_dict['gene_ids'] = [1] + flat_gi + [n_genes]
+        if self.hierarchy_version is not None:
+            if self.hierarchy_version == 'summed':
+                g = sample_data['AMR_genotypes_core']
+                gene_words = g.split(',')
+                h = sample_data['Hierarchy_data']
+                h = h.split(',')
+                h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
+                h = [[self.tokenizer.bos_token_id]] + h + [[self.tokenizer.eos_token_id]]
+                data_dict['gene_ids'] = h
+            elif self.hierarchy_version == 'separate':
+                geno_x = sample_data['Hierarchy_data']
+                geno_x = geno_x.split(',')
+                n_genes = len(geno_x)
+                h = [h.split(';') + ['<gpsep>'] for h in geno_x]
+                gi = [[i+1] * len(h[i]) for i in range(n_genes)]
+                flat_h = [a for b in h for a in b]
+                flat_gi = [a for b in gi for a in b]
+                gene_words = flat_h
+                data_dict['gene_ids'] = [1] + flat_gi + [n_genes]
         else:
             geno_x = sample_data['AMR_genotypes_core']
             gene_words = geno_x.split(',')
