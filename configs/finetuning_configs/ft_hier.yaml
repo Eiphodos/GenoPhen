@@ -28,5 +28,6 @@ data:
   known_gene: -1
   hierarchy:
     use_hierarchy_data: True
+    hierarchy_variant: summed
     hierarchy_file_path: /media/david/T7/NCBI/ReferenceGeneHierarchy.txt
     catalog_file_path: /media/david/T7/NCBI/ReferenceGeneCatalog.txt

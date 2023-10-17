@@ -39,6 +39,7 @@ data:
     min_ab: 1
   hierarchy:
     use_hierarchy_data: False
+    hierarch_variant: summed
     hierarchy_file_path: D:\Datasets\NCBI\ReferenceGeneHierarchy.txt
     catalog_file_path: D:\Datasets\NCBI\ReferenceGeneCatalog.txt
 tokenizer:

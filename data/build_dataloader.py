@@ -1,22 +1,31 @@
 from transformers import DataCollatorForLanguageModeling, DataCollatorWithPadding
-from data.hierarchical_datacollators import HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding
+from data.hierarchical_datacollators import HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding, HierSumDataCollatorForLanguageModeling
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe, combinatorial_data_generator, weights_separated_by_label
-from data.datasets import GenoPTDataset, GenoPhenoFTDataset, GenoPhenoFTDataset_legacy
+from data.datasets import GenoPTDataset, GenoPhenoFTDataset_legacy
 import os
 
 
 def build_pt_dataloaders(cfg, dataframe, tokenizer):
     train_dataframe, val_dataframe = cv_split_dataframe(cfg, dataframe)
 
-    train_dataset = GenoPTDataset(train_dataframe, tokenizer)
-    val_dataset = GenoPTDataset(val_dataframe, tokenizer)
-
     # Collator assumes data has been tokenized already, uses tokenizer to add padding to max batch len
     if cfg['data']['hierarchy']['use_hierarchy_data']:
-        data_collator = HierDataCollatorForLanguageModeling(
-            tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability'])
+        train_dataset = GenoPTDataset(train_dataframe, tokenizer,
+                                      hierarchy_version=cfg['data']['hierarchy']['hierarchy_variant'])
+        val_dataset = GenoPTDataset(val_dataframe, tokenizer,
+                                    hierarchy_version=cfg['data']['hierarchy']['hierarchy_variant'])
+        if cfg['data']['hierarchy']['hierarchy_variant'] == 'summed':
+            data_collator = HierSumDataCollatorForLanguageModeling(
+                tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability'])
+        elif cfg['data']['hierarchy']['hierarchy_variant'] == 'separate':
+            data_collator = HierDataCollatorForLanguageModeling(
+                tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability'])
+        else:
+            raise NotImplementedError('Hierarchy variant {} is not implemented!'.format(cfg['data']['hierarchy']['hierarchy_variant']))
     else:
+        train_dataset = GenoPTDataset(train_dataframe, tokenizer)
+        val_dataset = GenoPTDataset(val_dataframe, tokenizer)
         data_collator = DataCollatorForLanguageModeling(
             tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']
         )

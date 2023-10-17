@@ -4,7 +4,7 @@ import torch.nn as nn
 from models.roberta.configuration_roberta import RobertaConfig
 from models.roberta.modeling_roberta import RobertaForMaskedLM, RobertaModel
 from models.roberta.hierarchical_roberta import RobertaHierForMaskedLM, RobertaHierModel
-from models.roberta.hierarchical_embeddings import RobertaHierarchicalEmbeddingsV1
+from models.roberta.hierarchical_embeddings import RobertaHierarchicalEmbeddingsV1, RobertaHierarchicalEmbeddingsV2
 from models.legacy.antibiotic_model import AntibioticModelTrain
 from models.legacy.d2l_bert import BERTModel
 from models.legacy.integrated_model import IntegratedModel
@@ -29,6 +29,16 @@ def build_pt_model(cfg, tokenizer):
                                               type_vocab_size=1,
                                               hidden_size=cfg['model']['hidden_size'])
         emb = RobertaHierarchicalEmbeddingsV1(config=m_config)
+        model = RobertaHierForMaskedLM(m_config, emb)
+
+    if cfg['model']['class'] == 'RobertaHierSumForMaskedLM':
+        m_config = RobertaConfig(vocab_size=tokenizer.vocab_size,
+                                              max_position_embeddings=50,
+                                              num_attention_heads=cfg['model']['n_attention_heads'],
+                                              num_hidden_layers=cfg['model']['n_hidden_layers'],
+                                              type_vocab_size=1,
+                                              hidden_size=cfg['model']['hidden_size'])
+        emb = RobertaHierarchicalEmbeddingsV2(config=m_config)
         model = RobertaHierForMaskedLM(m_config, emb)
 
     return model

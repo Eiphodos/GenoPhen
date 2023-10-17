@@ -27,9 +27,10 @@ class GenoPTDataSet(Dataset):
 
 
 class GenoPTDataset(Dataset):
-    def __init__(self, data, tokenizer):
+    def __init__(self, data, tokenizer, hierarchy_version=None):
         self.tokenizer = tokenizer
         self.data = data
+        self.hierarchy_version = hierarchy_version
 
     def __len__(self):
         return len(self.data)
@@ -37,16 +38,25 @@ class GenoPTDataset(Dataset):
     def __getitem__(self, idx):
         all_words = []
         data_dict = {}
-        if 'Hierarchy_data' in self.data.columns:
-            w = self.data['Hierarchy_data'].iloc[idx]
-            w = w.split(',')
-            n_genes = len(w)
-            h = [h.split(';') + ['<gpsep>'] for h in w]
-            gi = [[i+1] * len(h[i]) for i in range(n_genes)]
-            flat_h = [a for b in h for a in b]
-            flat_gi = [a for b in gi for a in b]
-            all_words = flat_h
-            data_dict['gene_ids'] = [1] + flat_gi + [n_genes]
+        if self.hierarchy_version is not None:
+            if self.hierarchy_version == 'summed':
+                g = self.data['AMR_genotypes_core'].iloc[idx]
+                h = self.data['Hierarchy_data'].iloc[idx]
+                all_words = g.split(',')
+                h = h.split(',')
+                h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
+                h = [[self.tokenizer.bos_token_id]] + h + [[self.tokenizer.eos_token_id]]
+                data_dict['gene_ids'] = h
+            elif self.hierarchy_version == 'separate':
+                w = self.data['Hierarchy_data'].iloc[idx]
+                w = w.split(',')
+                n_genes = len(w)
+                h = [h.split(';') + ['<gpsep>'] for h in w]
+                gi = [[i+1] * len(h[i]) for i in range(n_genes)]
+                flat_h = [a for b in h for a in b]
+                flat_gi = [a for b in gi for a in b]
+                all_words = flat_h
+                data_dict['gene_ids'] = [1] + flat_gi + [n_genes]
         else:
             w = self.data['AMR_genotypes_core'].iloc[idx]
             w = w.split(',')
@@ -55,35 +65,6 @@ class GenoPTDataset(Dataset):
         tokenized_words = self.tokenizer.encode(all_words)
         data_dict['input_ids'] = tokenized_words
         return data_dict
-
-
-class GenoPhenoFTDataset(Dataset):
-    def __init__(self, cfg, dataframe, tokenizer):
-        self.tokenizer = tokenizer
-        self.data = dataframe
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        sample_data = self.data.iloc[idx]
-        all_words = []
-        geno_x = sample_data['AMR_genotypes_core']
-        ab_x = sample_data['AST_phenotypes_x']
-        ab_y = sample_data['AST_phenotypes_y']
-        if 'species_name' in self.data.columns:
-            species_data = sample_data['species_name']
-        geno_x = geno_x.split(',')
-        for c in self.data.columns:
-            w = self.data[c].iloc[idx]
-            if c == 'AMR_genotypes_core' or c == 'AST_phenotypes':
-                w = w.split(',')
-                all_words += w
-            else:
-                all_words += [w]
-        random.shuffle(all_words)
-        tokenized_words = self.tokenizer.encode(all_words)
-        return {'input_ids': tokenized_words}
 
 
 class GenoPhenoFTDataset_legacy(Dataset):
