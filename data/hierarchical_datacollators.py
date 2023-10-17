@@ -313,7 +313,7 @@ class HierSumDataCollatorWithPadding:
             pad_to_multiple_of=self.pad_to_multiple_of,
             return_tensors=self.return_tensors,
         )
-        batch_size, max_len_ii = batch.shape
+        batch_size, max_len_ii = batch['input_ids'].shape
 
         if "label" in batch:
             batch["labels"] = batch["label"]
