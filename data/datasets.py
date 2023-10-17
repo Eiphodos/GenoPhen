@@ -27,10 +27,10 @@ class GenoPTDataSet(Dataset):
 
 
 class GenoPTDataset(Dataset):
-    def __init__(self, data, tokenizer, hierarchy_version=None):
+    def __init__(self, data, tokenizer, hierarchy_variant=None):
         self.tokenizer = tokenizer
         self.data = data
-        self.hierarchy_version = hierarchy_version
+        self.hierarchy_variant = hierarchy_variant
 
     def __len__(self):
         return len(self.data)
@@ -38,8 +38,8 @@ class GenoPTDataset(Dataset):
     def __getitem__(self, idx):
         all_words = []
         data_dict = {}
-        if self.hierarchy_version is not None:
-            if self.hierarchy_version == 'summed':
+        if self.hierarchy_variant is not None:
+            if self.hierarchy_variant == 'summed':
                 g = self.data['AMR_genotypes_core'].iloc[idx]
                 h = self.data['Hierarchy_data'].iloc[idx]
                 all_words = g.split(',')
@@ -47,7 +47,7 @@ class GenoPTDataset(Dataset):
                 h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
                 h = [[self.tokenizer.bos_token_id]] + h + [[self.tokenizer.eos_token_id]]
                 data_dict['gene_ids'] = h
-            elif self.hierarchy_version == 'separate':
+            elif self.hierarchy_variant == 'separate':
                 w = self.data['Hierarchy_data'].iloc[idx]
                 w = w.split(',')
                 n_genes = len(w)
@@ -68,7 +68,7 @@ class GenoPTDataset(Dataset):
 
 
 class GenoPhenoFTDataset_legacy(Dataset):
-    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno, hierarchy_version=None):
+    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno, hierarchy_variant=None):
         self.ab_index_list = cfg['antibiotics']['index_list']
         self.tokenizer_geno = tokenizer_geno
         # self.labels = labels
@@ -77,7 +77,7 @@ class GenoPhenoFTDataset_legacy(Dataset):
         self.test_count = 0
         self.max_unknown_ab = 9
         self.max_total_ab = 14
-        self.hierarchy_version = hierarchy_version
+        self.hierarchy_variant = hierarchy_variant
 
     def __len__(self):
         return len(self.data)
@@ -87,8 +87,8 @@ class GenoPhenoFTDataset_legacy(Dataset):
         data_dict = {}
 
         ### Get Genotype data ###
-        if self.hierarchy_version is not None:
-            if self.hierarchy_version == 'summed':
+        if self.hierarchy_variant is not None:
+            if self.hierarchy_variant == 'summed':
                 g = sample_data['AMR_genotypes_core']
                 gene_words = g.split(',')
                 h = sample_data['Hierarchy_data']
@@ -96,7 +96,7 @@ class GenoPhenoFTDataset_legacy(Dataset):
                 h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
                 h = [[self.tokenizer.bos_token_id]] + h + [[self.tokenizer.eos_token_id]]
                 data_dict['gene_ids'] = h
-            elif self.hierarchy_version == 'separate':
+            elif self.hierarchy_variant == 'separate':
                 geno_x = sample_data['Hierarchy_data']
                 geno_x = geno_x.split(',')
                 n_genes = len(geno_x)
