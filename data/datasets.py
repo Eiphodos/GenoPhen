@@ -93,8 +93,8 @@ class GenoPhenoFTDataset_legacy(Dataset):
                 gene_words = g.split(',')
                 h = sample_data['Hierarchy_data']
                 h = h.split(',')
-                h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
-                h = [[self.tokenizer.bos_token_id]] + h + [[self.tokenizer.eos_token_id]]
+                h = [self.tokenizer_geno.encode(a.split(';'), add_special_tokens=False) for a in h]
+                h = [[self.tokenizer_geno.bos_token_id]] + h + [[self.tokenizer_geno.eos_token_id]]
                 data_dict['gene_ids'] = h
             elif self.hierarchy_variant == 'separate':
                 geno_x = sample_data['Hierarchy_data']
