@@ -68,9 +68,9 @@ def build_ft_legacy_dataloaders(cfg, dataframe, tokenizer_geno, tokenizer_pheno)
     val_dataset = GenoPhenoFTDataset_legacy(cfg, comb_val_dataframe, tokenizer_geno, tokenizer_pheno)
 
     if cfg['data']['hierarchy']['use_hierarchy_data']:
-        if cfg['data']['hierarchy']['hierarchy_version'] == 'summed':
+        if cfg['data']['hierarchy']['hierarchy_variant'] == 'summed':
             data_collator = HierSumDataCollatorWithPadding(tokenizer=tokenizer_geno)
-        elif cfg['data']['hierarchy']['hierarchy_version'] == 'separate':
+        elif cfg['data']['hierarchy']['hierarchy_variant'] == 'separate':
             data_collator = HierDataCollatorWithPadding(tokenizer=tokenizer_geno)
     else:
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer_geno)
