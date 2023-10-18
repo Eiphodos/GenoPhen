@@ -19,10 +19,13 @@ class GenoPTDataset(Dataset):
             if self.hierarchy_variant == 'summed':
                 g = self.data['AMR_genotypes_core'].iloc[idx]
                 h = self.data['Hierarchy_data'].iloc[idx]
-                all_words = g.split(',')
-                random.shuffle(all_words)
+
+                gene_words = g.split(',')
                 h = h.split(',')
-                random.shuffle(h)
+                z = list(zip(gene_words, h))
+                random.shuffle(z)
+                gene_words, h = zip(*z)
+
                 h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
                 h = [[self.tokenizer.bos_token_id]*9] + h + [[self.tokenizer.eos_token_id]*9]
                 data_dict['gene_ids'] = h
@@ -34,14 +37,14 @@ class GenoPTDataset(Dataset):
                 gi = [[i+1] * len(h[i]) for i in range(n_genes)]
                 flat_h = [a for b in h for a in b]
                 flat_gi = [a for b in gi for a in b]
-                all_words = flat_h
+                gene_words = flat_h
                 data_dict['gene_ids'] = [1] + flat_gi + [n_genes]
         else:
             w = self.data['AMR_genotypes_core'].iloc[idx]
             w = w.split(',')
-            all_words = w
-            random.shuffle(all_words)
-        tokenized_words = self.tokenizer.encode(all_words)
+            gene_words = w
+            random.shuffle(gene_words)
+        tokenized_words = self.tokenizer.encode(gene_words)
         data_dict['input_ids'] = tokenized_words
         return data_dict
 
@@ -69,11 +72,12 @@ class GenoPhenoFTDataset_legacy(Dataset):
         if self.hierarchy_variant is not None:
             if self.hierarchy_variant == 'summed':
                 g = sample_data['AMR_genotypes_core']
-                gene_words = g.split(',')
-                random.shuffle(gene_words)
                 h = sample_data['Hierarchy_data']
+                gene_words = g.split(',')
                 h = h.split(',')
-                random.shuffle(h)
+                z = list(zip(gene_words, h))
+                random.shuffle(z)
+                gene_words, h = zip(*z)
                 h = [self.tokenizer_geno.encode(a.split(';'), add_special_tokens=False) for a in h]
                 h = [[self.tokenizer_geno.bos_token_id]*9] + h + [[self.tokenizer_geno.eos_token_id]*9]
                 data_dict['gene_ids'] = h
