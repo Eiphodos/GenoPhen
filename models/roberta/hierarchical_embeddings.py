@@ -76,17 +76,31 @@ class RobertaHierarchicalEmbeddingsV2(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.word_embeddings = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id)
-        #self.gene_embeddings = nn.Embedding(config.max_genes, config.hidden_size)
+        self.position_embeddings = nn.Embedding(config.max_position_embeddings, config.hidden_size)
+        self.token_type_embeddings = nn.Embedding(config.type_vocab_size, config.hidden_size)
 
         # self.LayerNorm is not snake-cased to stick with TensorFlow model variable name and be able to load
         # any TensorFlow checkpoint file
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        # position_ids (1, len position emb) is contiguous in memory and exported when serialized
+        self.position_embedding_type = getattr(config, "position_embedding_type", "absolute")
+        self.register_buffer(
+            "position_ids", torch.arange(config.max_position_embeddings).expand((1, -1)), persistent=False
+        )
+        self.register_buffer(
+            "token_type_ids", torch.zeros(self.position_ids.size(), dtype=torch.long), persistent=False
+        )
 
         # End copy
         self.pad_token_id = config.pad_token_id
         self.mask_token_id = config.mask_token_id
         self.bos_token_id = config.bos_token_id
+        # End copy
+        self.padding_idx = config.pad_token_id
+        self.position_embeddings = nn.Embedding(
+            config.max_position_embeddings, config.hidden_size, padding_idx=self.padding_idx
+        )
 
     def forward(
         self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0,
@@ -107,14 +121,25 @@ class RobertaHierarchicalEmbeddingsV2(nn.Module):
         #    inputs_embeds = self.word_embeddings(input_ids)
 
         initial_embeds = self.word_embeddings(gene_ids)
-        summed_embeds = initial_embeds.sum(dim=2)
+        inputs_embeds = initial_embeds.sum(dim=2)
 
-        #summed_embeds = [self.summed_emb(input_ids[i], gene_ids[i]) for i in range(len(input_ids)) for j in len(input_ids)]
-        #summed_embeds = torch.stack(summed_embeds, dim=0)
+        input_shape = inputs_embeds.size()[:-1]
+        seq_length = input_shape[1]
+        position_ids = self.create_position_ids_from_inputs_embeds(inputs_embeds)
 
-        #gene_embeds = self.gene_embeddings(gene_ids)
+        if token_type_ids is None:
+            if hasattr(self, "token_type_ids"):
+                buffered_token_type_ids = self.token_type_ids[:, :seq_length]
+                buffered_token_type_ids_expanded = buffered_token_type_ids.expand(input_shape[0], seq_length)
+                token_type_ids = buffered_token_type_ids_expanded
+            else:
+                token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=self.position_ids.device)
+        token_type_embeddings = self.token_type_embeddings(token_type_ids)
 
-        embeddings = summed_embeds
+        embeddings = inputs_embeds + token_type_embeddings
+        if self.position_embedding_type == "absolute":
+            position_embeddings = self.position_embeddings(position_ids)
+            embeddings = embeddings + position_embeddings
 
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
