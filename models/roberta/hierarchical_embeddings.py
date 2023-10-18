@@ -106,8 +106,8 @@ class RobertaHierarchicalEmbeddingsV2(nn.Module):
         self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0,
             hierarchy_ids=None, gene_ids=None):
 
-        initial_embeds = self.word_embeddings(gene_ids)
-        inputs_embeds = initial_embeds.sum(dim=2)
+        hier_embeds = self.word_embeddings(gene_ids)
+        inputs_embeds = hier_embeds.sum(dim=2)
 
         input_shape = inputs_embeds.size()[:-1]
         seq_length = input_shape[1]

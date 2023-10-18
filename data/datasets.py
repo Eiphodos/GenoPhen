@@ -2,29 +2,6 @@ import random
 import numpy as np
 from torch.utils.data import Dataset
 
-class GenoPTDataSet(Dataset):
-    def __init__(self, data, tokenizer):
-        self.tokenizer = tokenizer
-        self.data = data
-        if 'species_name' in data.columns:
-            self.multi_species = True
-        else:
-            self.multi_species = False
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        all_genes = self.data.iloc[idx].AMR_genotypes_core
-        genes_as_words = all_genes.split(',')
-        random.shuffle(genes_as_words)
-        all_words = genes_as_words
-        if self.multi_species:
-            all_words += [self.data.iloc[idx].species_name]
-        #all_words = ','.join(all_words)
-        tokenized_words = self.tokenizer.encode(all_words)
-        return {'input_ids': tokenized_words}
-
 
 class GenoPTDataset(Dataset):
     def __init__(self, data, tokenizer, hierarchy_variant=None):
@@ -43,10 +20,11 @@ class GenoPTDataset(Dataset):
                 g = self.data['AMR_genotypes_core'].iloc[idx]
                 h = self.data['Hierarchy_data'].iloc[idx]
                 all_words = g.split(',')
+                random.shuffle(all_words)
                 h = h.split(',')
                 random.shuffle(h)
                 h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
-                h = [[self.tokenizer.bos_token_id]] + h + [[self.tokenizer.eos_token_id]]
+                h = [[self.tokenizer.bos_token_id]*9] + h + [[self.tokenizer.eos_token_id]*9]
                 data_dict['gene_ids'] = h
             elif self.hierarchy_variant == 'separate':
                 w = self.data['Hierarchy_data'].iloc[idx]
@@ -92,11 +70,12 @@ class GenoPhenoFTDataset_legacy(Dataset):
             if self.hierarchy_variant == 'summed':
                 g = sample_data['AMR_genotypes_core']
                 gene_words = g.split(',')
+                random.shuffle(gene_words)
                 h = sample_data['Hierarchy_data']
                 h = h.split(',')
                 random.shuffle(h)
                 h = [self.tokenizer_geno.encode(a.split(';'), add_special_tokens=False) for a in h]
-                h = [[self.tokenizer_geno.bos_token_id]] + h + [[self.tokenizer_geno.eos_token_id]]
+                h = [[self.tokenizer_geno.bos_token_id]*9] + h + [[self.tokenizer_geno.eos_token_id]*9]
                 data_dict['gene_ids'] = h
             elif self.hierarchy_variant == 'separate':
                 geno_x = sample_data['Hierarchy_data']
