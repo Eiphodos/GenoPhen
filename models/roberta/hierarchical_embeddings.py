@@ -106,8 +106,10 @@ class RobertaHierarchicalEmbeddingsV2(nn.Module):
         self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0,
             hierarchy_ids=None, gene_ids=None):
 
-        hier_embeds = self.word_embeddings(gene_ids)
-        inputs_embeds = hier_embeds.sum(dim=2)
+        hier_embeds = self.word_embeddings(gene_ids[:, 1:, :])
+        summed_embeds = hier_embeds.sum(dim=2)
+        cls_embed = self.word_embeddings(input_ids[:, 0].unsqueeze(1))
+        inputs_embeds = torch.cat((cls_embed, summed_embeds), dim=1)
 
         input_shape = inputs_embeds.size()[:-1]
         seq_length = input_shape[1]
@@ -123,9 +125,9 @@ class RobertaHierarchicalEmbeddingsV2(nn.Module):
                 token_type_ids = buffered_token_type_ids_expanded
             else:
                 token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=self.position_ids.device)
-        token_type_embeddings = self.token_type_embeddings(token_type_ids)
+        #token_type_embeddings = self.token_type_embeddings(token_type_ids)
 
-        embeddings = inputs_embeds + token_type_embeddings
+        embeddings = inputs_embeds #+ token_type_embeddings
         if self.position_embedding_type == "absolute":
             position_embeddings = self.position_embeddings(position_ids)
             embeddings = embeddings + position_embeddings
