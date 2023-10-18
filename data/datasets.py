@@ -44,6 +44,7 @@ class GenoPTDataset(Dataset):
                 h = self.data['Hierarchy_data'].iloc[idx]
                 all_words = g.split(',')
                 h = h.split(',')
+                random.shuffle(h)
                 h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
                 h = [[self.tokenizer.bos_token_id]] + h + [[self.tokenizer.eos_token_id]]
                 data_dict['gene_ids'] = h

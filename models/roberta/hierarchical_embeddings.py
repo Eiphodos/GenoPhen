@@ -106,20 +106,6 @@ class RobertaHierarchicalEmbeddingsV2(nn.Module):
         self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0,
             hierarchy_ids=None, gene_ids=None):
 
-        if input_ids is not None:
-            input_shape = input_ids.size()
-        else:
-            input_shape = inputs_embeds.size()[:-1]
-
-        seq_length = input_shape[1]
-
-        # Setting the token_type_ids to the registered buffer in constructor where it is all zeros, which usually occurs
-        # when its auto-generated, registered buffer helps users when tracing the model without passing token_type_ids, solves
-        # issue #5664
-
-        #if inputs_embeds is None:
-        #    inputs_embeds = self.word_embeddings(input_ids)
-
         initial_embeds = self.word_embeddings(gene_ids)
         inputs_embeds = initial_embeds.sum(dim=2)
 
@@ -127,6 +113,9 @@ class RobertaHierarchicalEmbeddingsV2(nn.Module):
         seq_length = input_shape[1]
         position_ids = self.create_position_ids_from_inputs_embeds(inputs_embeds)
 
+        # Setting the token_type_ids to the registered buffer in constructor where it is all zeros, which usually occurs
+        # when its auto-generated, registered buffer helps users when tracing the model without passing token_type_ids, solves
+        # issue #5664
         if token_type_ids is None:
             if hasattr(self, "token_type_ids"):
                 buffered_token_type_ids = self.token_type_ids[:, :seq_length]
