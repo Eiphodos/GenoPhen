@@ -12,9 +12,11 @@ def build_pt_dataloaders(cfg, dataframe, tokenizer):
     # Collator assumes data has been tokenized already, uses tokenizer to add padding to max batch len
     if cfg['data']['hierarchy']['use_hierarchy_data']:
         train_dataset = GenoPTDataset(train_dataframe, tokenizer,
-                                      hierarchy_variant=cfg['data']['hierarchy']['hierarchy_variant'])
+                                      hierarchy_variant=cfg['data']['hierarchy']['hierarchy_variant'],
+                                      max_n_hier=cfg['data']['max_n_hier'])
         val_dataset = GenoPTDataset(val_dataframe, tokenizer,
-                                    hierarchy_variant=cfg['data']['hierarchy']['hierarchy_variant'])
+                                    hierarchy_variant=cfg['data']['hierarchy']['hierarchy_variant'],
+                                    max_n_hier=cfg['data']['max_n_hier'])
         if cfg['data']['hierarchy']['hierarchy_variant'] == 'summed':
             data_collator = HierSumDataCollatorForLanguageModeling(
                 tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability'])
@@ -66,9 +68,11 @@ def build_ft_legacy_dataloaders(cfg, dataframe, tokenizer_geno, tokenizer_pheno)
 
     if cfg['data']['hierarchy']['use_hierarchy_data']:
         train_dataset = GenoPhenoFTDataset_legacy(cfg, comb_train_dataframe, tokenizer_geno, tokenizer_pheno,
-                                                  hierarchy_variant=cfg['data']['hierarchy']['hierarchy_variant'])
+                                                  hierarchy_variant=cfg['data']['hierarchy']['hierarchy_variant'],
+                                                  max_n_hier=cfg['data']['max_n_hier'])
         val_dataset = GenoPhenoFTDataset_legacy(cfg, comb_val_dataframe, tokenizer_geno, tokenizer_pheno,
-                                                hierarchy_variant=cfg['data']['hierarchy']['hierarchy_variant'])
+                                                hierarchy_variant=cfg['data']['hierarchy']['hierarchy_variant'],
+                                                max_n_hier=cfg['data']['max_n_hier'])
         if cfg['data']['hierarchy']['hierarchy_variant'] == 'summed':
             data_collator = HierSumDataCollatorWithPadding(tokenizer=tokenizer_geno)
         elif cfg['data']['hierarchy']['hierarchy_variant'] == 'separate':

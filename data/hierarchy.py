@@ -1,15 +1,17 @@
 import numpy as np
 import pandas as pd
 import re
+from data.preprocessing_utils import clean_biss_prime_hier, clean_bla_hier, clean_aap_aac_hier, clean_doubles_hier
 
 
-def get_gene_trace(hdata, cdata, gene_word):
+def get_gene_trace(hdata, cdata, cfg, gene_word):
     trace = []
     # regex pattern for matching with pointwise mutations
     pattern = r'_[a-zA-Z0-9-]{3,}='
     if re.search(pattern, gene_word):
+        org_word = gene_word
         gene_word = gene_word.split('=')[0]
-        trace.append(gene_word)
+        trace.append(org_word)
         trace.append(gene_word.split('_')[0])
         cdata_gw = cdata[cdata['allele'] == gene_word]
         if len(cdata_gw) == 0:
@@ -44,7 +46,13 @@ def get_gene_trace(hdata, cdata, gene_word):
             parent = hdata[hdata['node_id'] == parent]['parent_node_id'].item()
         trace.append(sc)
         trace.append(gc)
-
+    # Data cleaning
+    if cfg['data']['filter']['bla']:
+        trace = clean_bla_hier(trace)
+    if cfg['data']['filter']['aph_aac']:
+        trace = clean_aap_aac_hier(trace)
+    trace = clean_biss_prime_hier(trace)
+    trace = clean_doubles_hier(trace)
     return ";".join(trace)
 
 
@@ -55,6 +63,6 @@ def build_hierarchy_data(cfg, df):
 
     print("Building hierarchy traces for all genes in dataframe...")
     df['Hierarchy_data'] = df['AMR_genotypes_core'].map(
-        lambda x: ','.join([get_gene_trace(hdata, cdata, a) for a in x.split(',')]))
+        lambda x: ','.join([get_gene_trace(hdata, cdata, cfg, a) for a in x.split(',')]))
 
     return df

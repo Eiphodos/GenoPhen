@@ -4,10 +4,11 @@ from torch.utils.data import Dataset
 
 
 class GenoPTDataset(Dataset):
-    def __init__(self, data, tokenizer, hierarchy_variant=None):
+    def __init__(self, data, tokenizer, hierarchy_variant=None, max_n_hier=9):
         self.tokenizer = tokenizer
         self.data = data
         self.hierarchy_variant = hierarchy_variant
+        self.max_n_hier = max_n_hier
 
     def __len__(self):
         return len(self.data)
@@ -27,7 +28,7 @@ class GenoPTDataset(Dataset):
                 gene_words, h = zip(*z)
 
                 h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
-                h = [[self.tokenizer.bos_token_id]*9] + h + [[self.tokenizer.eos_token_id]*9]
+                h = [[self.tokenizer.bos_token_id]*self.max_n_hier] + h + [[self.tokenizer.eos_token_id]*self.max_n_hier]
                 data_dict['gene_ids'] = h
             elif self.hierarchy_variant == 'separate':
                 w = self.data['Hierarchy_data'].iloc[idx]
@@ -50,7 +51,7 @@ class GenoPTDataset(Dataset):
 
 
 class GenoPhenoFTDataset_legacy(Dataset):
-    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno, hierarchy_variant=None):
+    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno, hierarchy_variant=None, max_n_hier=9):
         self.ab_index_list = cfg['antibiotics']['index_list']
         self.tokenizer_geno = tokenizer_geno
         # self.labels = labels
@@ -60,6 +61,7 @@ class GenoPhenoFTDataset_legacy(Dataset):
         self.max_unknown_ab = 9
         self.max_total_ab = 14
         self.hierarchy_variant = hierarchy_variant
+        self.max_n_hier = max_n_hier
 
     def __len__(self):
         return len(self.data)
@@ -73,13 +75,15 @@ class GenoPhenoFTDataset_legacy(Dataset):
             if self.hierarchy_variant == 'summed':
                 g = sample_data['AMR_genotypes_core']
                 h = sample_data['Hierarchy_data']
+
                 gene_words = g.split(',')
                 h = h.split(',')
                 z = list(zip(gene_words, h))
                 random.shuffle(z)
                 gene_words, h = zip(*z)
+
                 h = [self.tokenizer_geno.encode(a.split(';'), add_special_tokens=False) for a in h]
-                h = [[self.tokenizer_geno.bos_token_id]*9] + h + [[self.tokenizer_geno.eos_token_id]*9]
+                h = [[self.tokenizer_geno.bos_token_id]*self.max_n_hier] + h + [[self.tokenizer_geno.eos_token_id]*self.max_n_hier]
                 data_dict['gene_ids'] = h
             elif self.hierarchy_variant == 'separate':
                 geno_x = sample_data['Hierarchy_data']
