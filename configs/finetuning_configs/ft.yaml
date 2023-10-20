@@ -21,6 +21,6 @@ data:
     doubles_pheno: True
     doubles_geno: False
     min_geno: 1
-    min_ab: 4
-  known_ab: 3
+    min_ab: 2
+  known_ab: 1
   known_gene: -1
