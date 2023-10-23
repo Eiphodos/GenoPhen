@@ -247,7 +247,7 @@ class IntegratedModel:
                 gene_ids = batch['gene_ids']
                 self.optimizer.zero_grad()
                 ab_y_hat, ab_y_true, loss_y, acc, me, vme = \
-                    self.train_pass_and_loss(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
+                    self.train_pass_and_loss(input_ids, x, y_pos_antibiotic, y_resp, len_y,
                                              total_len_x, attention, gene_ids)
 
                 loss = loss_y  # + loss_x
@@ -317,7 +317,7 @@ class IntegratedModel:
             gene_ids = batch['gene_ids']
             # self.optimizer.zero_grad()
             ab_y_hat, ab_y_true, loss_y, positions_y = \
-                self.val_pass_and_loss(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
+                self.val_pass_and_loss(input_ids, x, y_pos_antibiotic, y_resp, len_y,
                                        total_len_x, attention, gene_ids, val=True)
             # loss = loss_y  # + loss_x
 
