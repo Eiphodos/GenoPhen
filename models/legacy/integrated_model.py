@@ -219,56 +219,57 @@ class IntegratedModel:
         curr_batch = 0
         # for input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y, total_len_x, attention, labels in self.train_loader:
         for batch in tqdm(self.train_dataloader):
-            batch = {k: v.to(self.device) for k, v in batch.items()}
-            input_ids = batch['input_ids']
-            x = batch['ab']
-            x_pos_antibiotic = batch['x pos ab']
-            y_pos_antibiotic = batch['y pos ab']
-            x_resp = batch['x resp']
-            y_resp = batch['y resp']
-            len_x = batch['len x']
-            len_y = batch['len y']
-            total_len_x = batch["total len x"]
-            attention = batch['attention_mask']
-            gene_ids = batch['gene_ids']
-            self.optimizer.zero_grad()
-            ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, loss_y, loss_x, acc, me, vme = \
-                self.train_pass_and_loss(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
-                                         total_len_x, attention, gene_ids)
+            with torch.cuda.amp.autocast(enabled=self.mixed_precision):
+                batch = {k: v.to(self.device) for k, v in batch.items()}
+                input_ids = batch['input_ids']
+                x = batch['ab']
+                x_pos_antibiotic = batch['x pos ab']
+                y_pos_antibiotic = batch['y pos ab']
+                x_resp = batch['x resp']
+                y_resp = batch['y resp']
+                len_x = batch['len x']
+                len_y = batch['len y']
+                total_len_x = batch["total len x"]
+                attention = batch['attention_mask']
+                gene_ids = batch['gene_ids']
+                self.optimizer.zero_grad()
+                ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, loss_y, loss_x, acc, me, vme = \
+                    self.train_pass_and_loss(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
+                                             total_len_x, attention, gene_ids)
 
-            loss = loss_y  # + loss_x
+                loss = loss_y  # + loss_x
 
-            # Backward Pass
-            #loss.backward()
-            self.scaler.scale(loss).backward()
-            train_loss += loss.item()
+                # Backward Pass
+                #loss.backward()
+                self.scaler.scale(loss).backward()
+                train_loss += loss.item()
 
-            acc_tot += acc
-            me_tot += me
-            vme_tot += vme
-            '''
-            if curr_batch % print_every_n_batches == 0:
-                #print(batch)
+                acc_tot += acc
+                me_tot += me
+                vme_tot += vme
+                '''
+                if curr_batch % print_every_n_batches == 0:
+                    #print(batch)
+    
+                    print(curr_batch, "Train loss: {}".format(loss.item()))
+                    print(curr_batch, "Accuracy: {}".format(acc))
+                    print(curr_batch, "Major error: {}".format(me))
+                    print(curr_batch, "Very major error: {}".format(vme))
+    
+                    #print("ab y pred: {}".format(ab_y_hat))
+                    #print("ab x pred: {}".format(ab_y_hat))
+                    #print("ab y true: {}".format(ab_y_hat))
+                    #print("ab x true: {}".format(ab_y_hat))
+                '''
+                curr_batch += 1
 
-                print(curr_batch, "Train loss: {}".format(loss.item()))
-                print(curr_batch, "Accuracy: {}".format(acc))
-                print(curr_batch, "Major error: {}".format(me))
-                print(curr_batch, "Very major error: {}".format(vme))
 
-                #print("ab y pred: {}".format(ab_y_hat))
-                #print("ab x pred: {}".format(ab_y_hat))
-                #print("ab y true: {}".format(ab_y_hat))
-                #print("ab x true: {}".format(ab_y_hat))
-            '''
-            curr_batch += 1
-
-
-            n_batch = self.n_batches_train
-            self.train_counter += 1
-            # Update the Weights
-            #self.optimizer.step()
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+                n_batch = self.n_batches_train
+                self.train_counter += 1
+                # Update the Weights
+                #self.optimizer.step()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
         self.epoch += 1
         if self.scheduler:
             self.scheduler.step()
