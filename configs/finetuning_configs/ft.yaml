@@ -23,4 +23,4 @@ data:
     min_geno: 1
     min_ab: 2
   known_ab: 1
-  known_gene: -1
+  known_gene: 1

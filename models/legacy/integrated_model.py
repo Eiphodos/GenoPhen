@@ -26,8 +26,13 @@ class IntegratedModel:
         self.weights_s_val = cfg['antibiotics']['val_ab_weights']['weights_s']
         self.weights_r_val = cfg['antibiotics']['val_ab_weights']['weights_r']
         self.ab_abbrev_list = cfg['antibiotics']['index_list']
-        self.pheno_model = pheno_model
-        self.geno_model = geno_model
+        self.known_ab = cfg['data']['known_ab']
+        self.known_gene = cfg['data']['known_gene']
+
+        if self.known_ab > 0:
+            self.pheno_model = pheno_model
+        if self.known_ab > 0:
+            self.geno_model = geno_model
         self.device = cfg['device']
         self.number_ab = len(cfg['antibiotics']['antibiotics_in_use'])
         self.abpred = [self.ab_pred(cfg['model']['input_dim'], cfg['model']['hidden_dim']) for _ in range(self.number_ab)]  # 1 neural networks for each ab
@@ -43,9 +48,11 @@ class IntegratedModel:
         long_param_list = []
         for i in range(len(self.abpred)):
             long_param_list.extend(list(self.abpred[i].parameters()))  # add all parameters from the neural networks
-
-        self.optimizer = torch.optim.Adam(list(self.pheno_model.net.parameters()) +
-                                          list(self.geno_model.parameters()) + long_param_list,
+        if self.known_ab > 0:
+            long_param_list = long_param_list + list(self.pheno_model.net.parameters())
+        if self.known_gene > 0:
+            long_param_list = long_param_list + list(self.geno_model.parameters())
+        self.optimizer = torch.optim.Adam(long_param_list,
                                           lr=cfg['optimizer']['lr'],
                                           weight_decay=cfg['optimizer']['weight_decay'])
         # optimizer above takes all parameters from both transformers and all neural networks
@@ -69,32 +76,42 @@ class IntegratedModel:
                                 nn.Linear(hidden_dim, 2)).to(self.device)
         return self.ab
 
-    def forward(self, input_ids, x, positions_y, batch_index_y, positions_x, batch_index_x, x_valid_len_to,
+    def forward(self, input_ids, x, positions_y, batch_index_y, x_valid_len_to,
                 attention_mask, gene_ids):
-        input_ids = input_ids.to(self.device)
-        attention_mask = attention_mask.to(self.device)
-        if torch.isnan(gene_ids).any():
-            outputs = self.geno_model(input_ids=input_ids, attention_mask=attention_mask)  # index out of range of self
-        else:
-            outputs = self.geno_model(input_ids=input_ids, attention_mask=attention_mask, gene_ids=gene_ids)  # index out of range of self
-        #output_logits = outputs.logits
-        # print("shape of AMR model logits: {}".format(output_logits.shape))
-        #cls_tokens_amr = output_logits[:, 0, :]
-        # print("shape of AMR model cls token: {}".format(cls_tokens_amr.shape))
-        cls_tokens_amr = outputs.last_hidden_state[:, 0, :]
+        if self.known_gene > 0:
+            input_ids = input_ids.to(self.device)
+            attention_mask = attention_mask.to(self.device)
+            if torch.isnan(gene_ids).any():
+                outputs = self.geno_model(input_ids=input_ids, attention_mask=attention_mask)  # index out of range of self
+            else:
+                outputs = self.geno_model(input_ids=input_ids, attention_mask=attention_mask, gene_ids=gene_ids)  # index out of range of self
+            #output_logits = outputs.logits
+            # print("shape of AMR model logits: {}".format(output_logits.shape))
+            #cls_tokens_amr = output_logits[:, 0, :]
+            # print("shape of AMR model cls token: {}".format(cls_tokens_amr.shape))
+            cls_tokens_amr = outputs.last_hidden_state[:, 0, :]
 
-        tokens_ab = self.pheno_model.net.encoder(x, x_valid_len_to)
-        # print("shape of AST model tokens: {}".format(tokens_ab.shape))
-        cls_tokens_ab = tokens_ab[:, 0, :]
-        # print("shape of AST model cls token: {}".format(cls_tokens_ab.shape))
+        if self.known_ab > 0:
+            x = x.to(self.device)
+            x_valid_len_to = x_valid_len_to.to(self.device)
+            tokens_ab = self.pheno_model.net.encoder(x, x_valid_len_to)
+            # print("shape of AST model tokens: {}".format(tokens_ab.shape))
+            cls_tokens_ab = tokens_ab[:, 0, :]
+            # print("shape of AST model cls token: {}".format(cls_tokens_ab.shape))
 
-        # other_tokens_amr = output_logits[:,1:,:]
-        # other_tokens_ab = tokens_ab[:,1:,:]
-        # avg_other_amr = other_tokens_amr.mean(dim=1)
-        # avg_other_ab = other_tokens_ab.mean(dim=1)
+            # other_tokens_amr = output_logits[:,1:,:]
+            # other_tokens_ab = tokens_ab[:,1:,:]
+            # avg_other_amr = other_tokens_amr.mean(dim=1)
+            # avg_other_ab = other_tokens_ab.mean(dim=1)
 
-        # encoded_x = torch.cat([cls_tokens_amr, cls_tokens_ab, avg_other_amr, avg_other_ab], dim = 1).to(self.device)
-        encoded_x = torch.cat([cls_tokens_amr, cls_tokens_ab], dim=1).to(self.device)
+        if self.known_gene > 0 and self.known_ab > 0:
+            # encoded_x = torch.cat([cls_tokens_amr, cls_tokens_ab, avg_other_amr, avg_other_ab], dim = 1).to(self.device)
+            encoded_x = torch.cat([cls_tokens_amr, cls_tokens_ab], dim=1).to(self.device)
+        elif self.known_gene > 0:
+            encoded_x = cls_tokens_amr.to(self.device)
+        elif self.known_ab > 0:
+            encoded_x = cls_tokens_ab.to(self.device)
+
 
         encoded_x = encoded_x[:, None, :]
         # print("shape of encoded x: {}".format(encoded_x.shape))
@@ -102,22 +119,21 @@ class IntegratedModel:
         mlm_hat = torch.cat([a(encoded_x) for a in self.abpred], 1).to(self.device)
 
         ab_y_hat = mlm_hat[batch_index_y, positions_y]
-        ab_x_hat = mlm_hat[batch_index_x, positions_x]
+        #ab_x_hat = mlm_hat[batch_index_x, positions_x]
 
-        return ab_y_hat, ab_x_hat
+        return ab_y_hat#, ab_x_hat
 
-    def predict(self, input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, len_x, len_y, total_len_x,
+    def predict(self, input_ids, x, y_pos_antibiotic, len_y, total_len_x,
                 attention_mask, gene_ids, deterministic=False):
         if deterministic:
             self.net.eval()
         # Collect for y prediction
-        x = x.to(self.device)
-        total_len_x = total_len_x.to(self.device)
         tmp = [[ly] * len_y[ly] for ly in range(len(len_y))]
         batch_index_y = torch.tensor(list(itertools.chain(*tmp))).to(self.device)
         tmp = torch.reshape(y_pos_antibiotic, (-1,))
         positions_y = tmp[tmp >= 0].to(self.device)
 
+        '''
         # Collect for x prediction
         tmp = [[lx] * len_x[lx] for lx in range(len(len_x))]
         batch_index_x = torch.tensor(list(itertools.chain(*tmp))).to(self.device)
@@ -125,28 +141,26 @@ class IntegratedModel:
         positions_x = tmp[tmp >= 0].to(self.device)
         tmp = torch.reshape(x_resp, (-1,))
         ab_x_true = tmp[tmp >= 0].to(self.device)
+        '''
 
-        ab_y_hat, ab_x_hat = self.forward(input_ids, x, positions_y, batch_index_y,
-                                          positions_x, batch_index_x, total_len_x, attention_mask, gene_ids)
+        ab_y_hat = self.forward(input_ids, x, positions_y, batch_index_y, total_len_x, attention_mask, gene_ids)
 
-        return ab_y_hat, ab_x_hat, ab_x_true, positions_y, positions_x, batch_index_y, batch_index_x
+        return ab_y_hat, positions_y
 
     def forward_pass_loss(self, input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
                           total_len_x, attention_mask, gene_ids, deterministic=False):
         tmp = torch.reshape(y_resp, (-1,))
         ab_y_true = tmp[tmp >= 0].to(self.device)
-        ab_y_hat, ab_x_hat, ab_x_true, positions_y, positions_x, batch_index_y, batch_index_x = \
-            self.predict(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, len_x, len_y, total_len_x,
-                         attention_mask, gene_ids, deterministic)
+        ab_y_hat, positions_y = self.predict(input_ids, x, y_pos_antibiotic, len_y, total_len_x,
+                                                            attention_mask, gene_ids, deterministic)
 
-        return ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, positions_y, positions_x, batch_index_y, batch_index_x
+        return ab_y_hat, ab_y_true, positions_y
 
-    def train_pass_and_loss(self, input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
-                            total_len_x, attention_mask, gene_ids, val=False):
+    def train_pass_and_loss(self, input_ids, x, y_pos_antibiotic, y_resp, len_y,
+                            total_len_x, attention_mask, gene_ids):
 
-        ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, positions_y, positions_x, _, _ = \
-            self.forward_pass_loss(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
-                                   total_len_x, attention_mask, gene_ids)
+        ab_y_hat, ab_y_true, positions_y = self.forward_pass_loss(input_ids, x, y_pos_antibiotic, y_resp, len_y,
+                                                                     total_len_x, attention_mask, gene_ids)
 
         index_list = []
         for i in range(len(positions_y)):
@@ -155,8 +169,8 @@ class IntegratedModel:
         loss_y = [self.losses[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                   for i in range(self.number_ab) if len(ab_y_true[positions_y == i]) > 0]
 
-        loss_x = [self.losses[i](ab_x_hat[positions_x == i, :], ab_x_true[positions_x == i])
-                  for i in range(self.number_ab)]
+        #loss_x = [self.losses[i](ab_x_hat[positions_x == i, :], ab_x_true[positions_x == i])
+        #          for i in range(self.number_ab)]
 
         acc = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                for i in range(self.number_ab)]
@@ -168,24 +182,23 @@ class IntegratedModel:
         vme = [error_rates[i][1] for i in range(len(error_rates))]
 
         loss_y = sum(loss_y) / len(loss_y)
-        loss_x = sum(loss_x) / len(loss_x)
+        #loss_x = sum(loss_x) / len(loss_x)
         acc = sum(acc) / len(index_list)
         me = sum(me) / len(index_list)
         vme = sum(vme) / len(index_list)
-        return ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, loss_y, loss_x, acc, me, vme
+        return ab_y_hat, ab_y_true, loss_y, acc, me, vme
 
-    def val_pass_and_loss(self, input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
+    def val_pass_and_loss(self, input_ids, x, y_pos_antibiotic, y_resp, len_y,
                           total_len_x, attention_mask, gene_ids, val=False):
         with torch.no_grad():
-            ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, positions_y, positions_x, _, _ = \
-                self.forward_pass_loss(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
+            ab_y_hat, ab_y_true, positions_y =  self.forward_pass_loss(input_ids, x, y_pos_antibiotic, y_resp, len_y,
                                        total_len_x, attention_mask, gene_ids)
 
             loss_y = [self.losses[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                       for i in range(self.number_ab) if len(ab_y_true[positions_y == i]) > 0]
 
-            loss_x = [self.losses[i](ab_x_hat[positions_x == i, :], ab_x_true[positions_x == i])
-                      for i in range(self.number_ab) if len(ab_x_hat[positions_x == i]) > 0]
+            #loss_x = [self.losses[i](ab_x_hat[positions_x == i, :], ab_x_true[positions_x == i])
+            #          for i in range(self.number_ab) if len(ab_x_hat[positions_x == i]) > 0]
 
             acc_list = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
                         for i in range(self.number_ab)]
@@ -196,15 +209,15 @@ class IntegratedModel:
             me_list = [error_rates[i][0] for i in range(len(error_rates))]
             vme_list = [error_rates[i][1] for i in range(len(error_rates))]
 
-            if self.start_ab_stats == True and val == True:
-                ab_spec_stat(index_list, s_index, r_index, acc_list, me_list, vme_list)
+            #if self.start_ab_stats == True and val == True:
+            #    ab_spec_stat(index_list, s_index, r_index, acc_list, me_list, vme_list)
 
             loss_y = sum(loss_y) / len(loss_y)
-            loss_x = sum(loss_x) / len(loss_x)
+            #loss_x = sum(loss_x) / len(loss_x)
             # acc = sum(acc_list)/len(index_list)
             # me = sum(me_list)/len(s_index)
             # vme = sum(vme_list)/len(r_index)
-            return ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, loss_y, loss_x, positions_y
+            return ab_y_hat, ab_y_true, loss_y, positions_y
 
     def _train_epoch(self):
         # Set Train Mode
@@ -233,7 +246,7 @@ class IntegratedModel:
                 attention = batch['attention_mask']
                 gene_ids = batch['gene_ids']
                 self.optimizer.zero_grad()
-                ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, loss_y, loss_x, acc, me, vme = \
+                ab_y_hat, ab_y_true, loss_y, acc, me, vme = \
                     self.train_pass_and_loss(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
                                              total_len_x, attention, gene_ids)
 
@@ -303,7 +316,7 @@ class IntegratedModel:
             attention = batch['attention_mask']
             gene_ids = batch['gene_ids']
             # self.optimizer.zero_grad()
-            ab_y_hat, ab_x_hat, ab_y_true, ab_x_true, loss_y, loss_x, positions_y = \
+            ab_y_hat, ab_y_true, loss_y, positions_y = \
                 self.val_pass_and_loss(input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
                                        total_len_x, attention, gene_ids, val=True)
             # loss = loss_y  # + loss_x
