@@ -177,5 +177,5 @@ class GenoPhenoFTDataset_legacy(Dataset):
         if letter == "y":
             resp_list += [-1] * (self.max_unknown_ab - len(resp_list))
         if letter == "x":
-            resp_list += [-1] * (14 - len(resp_list))
+            resp_list += [-1] * (self.max_total_ab - len(resp_list))
         return resp_list
