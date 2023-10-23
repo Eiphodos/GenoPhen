@@ -147,7 +147,7 @@ class IntegratedModel:
 
         return ab_y_hat, positions_y
 
-    def forward_pass_loss(self, input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y,
+    def forward_pass_loss(self, input_ids, x, y_pos_antibiotic, y_resp, len_y,
                           total_len_x, attention_mask, gene_ids, deterministic=False):
         tmp = torch.reshape(y_resp, (-1,))
         ab_y_true = tmp[tmp >= 0].to(self.device)
