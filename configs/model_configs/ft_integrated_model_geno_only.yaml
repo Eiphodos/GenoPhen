@@ -1,0 +1,32 @@
+model:
+  class: IntegratedModel
+  hidden_dim: 200
+  input_dim: 512
+  out_dim: 2
+  pheno:
+    use_pretrained: True
+    pretrained_weights: D:\Models\GenoPhen\Pretraining\Pheno\Legacy\bert_state_dict.pth
+    class: AntibioticModelTrain
+    num_hiddens: 2046
+    norm_shape: 2046
+    ffn_num_input: 2046
+    ffn_num_hiddens: 256
+    attention_heads: 1
+    attention_layers: 1
+    dropout: 0.05
+    key_size: 2046
+    query_size: 2046
+    value_size: 2046
+  geno:
+    use_pretrained: True
+    pretrained_weights: D:\Models\GenoPhen\Pretraining\Geno\RobertaForMaskedLM_2023-10-02-15_47
+    class: RobertaModel
+    n_attention_heads: 4
+    n_hidden_layers: 4
+    hidden_size: 512
+tokenizer:
+  use_pretrained: True
+  pheno:
+    pretrained_weights: D:\Models\GenoPhen\Pretraining\Pheno\Legacy\vocabulary.pth
+  geno:
+    pretrained_weights: D:\Models\GenoPhen\Pretraining\Geno\RobertaForMaskedLM_2023-10-02-15_47

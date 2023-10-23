@@ -58,7 +58,7 @@ class GenoPhenoFTDataset_legacy(Dataset):
         self.data = dataframe
         self.tokenizer_pheno = tokenizer_pheno
         self.test_count = 0
-        self.max_unknown_ab = 11
+        self.max_unknown_ab = 12
         self.max_total_ab = 14
         self.hierarchy_variant = hierarchy_variant
         self.max_n_hier = max_n_hier

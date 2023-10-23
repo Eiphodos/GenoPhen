@@ -31,7 +31,7 @@ class IntegratedModel:
 
         if self.known_ab > 0:
             self.pheno_model = pheno_model
-        if self.known_ab > 0:
+        if self.known_gene > 0:
             self.geno_model = geno_model
         self.device = cfg['device']
         self.number_ab = len(cfg['antibiotics']['antibiotics_in_use'])
@@ -222,7 +222,10 @@ class IntegratedModel:
     def _train_epoch(self):
         # Set Train Mode
         # Hur fick vi batch från början?
-        self.geno_model.train()
+        if self.known_ab > 0:
+            self.pheno_model.net.train()
+        if self.known_gene > 0:
+            self.geno_model.train()
 
         train_loss = 0.
         acc_tot = 0
@@ -291,7 +294,10 @@ class IntegratedModel:
     def _val_epoch(self):
         # Set Train Mode
         # Hur fick vi batch från början?
-        self.geno_model.eval()
+        if self.known_ab > 0:
+            self.pheno_model.net.eval()
+        if self.known_gene > 0:
+            self.geno_model.eval()
 
         train_loss = 0.
         acc_tot = 0
