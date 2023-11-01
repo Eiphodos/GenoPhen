@@ -20,7 +20,7 @@ def create_and_train_tokenizer(cfg, dataframe):
 
     corpus = create_corpus(cfg, dataframe)
 
-    vocab = get_unique_word_list(dataframe)
+    vocab = get_unique_word_list(dataframe[cfg['tokenizer']['columns_for_corpus']])
     print("Size of vocabulary before training: {}".format(len(vocab)))
     vocab = cfg['tokenizer']['special_token_list'] + vocab
 

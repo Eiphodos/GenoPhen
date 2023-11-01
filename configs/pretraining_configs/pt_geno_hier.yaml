@@ -10,7 +10,7 @@ species:
     file_path: /media/david/T7/NCBI/Klebsiella/PDG000000012.1486.amr.metadata.tsv
 data:
   load_preprocessed_data: True
-  preprocessed_data_file_path: /cephyr/NOBACKUP/groups/ml-e2/olzond/GenoPhen/Pretraining/Geno/RobertaHierForMaskedLM_2023-10-11-13_21/pp_data.tsv
+  preprocessed_data_file_path: D:\Models\GenoPhen\Pretraining\Geno\PT_Hier3\pp_data.tsv
   species:
     - E_Coli
   columns:
@@ -28,7 +28,9 @@ data:
     forward_slash: True
     min_geno: 3
     min_ab: 0
+  known_gene: 3
   hierarchy:
     use_hierarchy_data: True
+    hierarchy_variant: summed
     hierarchy_file_path: /media/david/T7/NCBI/ReferenceGeneHierarchy.txt
     catalog_file_path: /media/david/T7/NCBI/ReferenceGeneCatalog.txt

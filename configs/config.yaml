@@ -140,3 +140,13 @@ antibiotics:
   piperacillin: PIP
   tobramycin: TOB
   piperacillin-tazobactam: TZP
+genes:
+  mode: only_data
+  use_complement: False
+  only_include:
+    tet(A)
+    silA
+    sul1
+  only_exclude:
+    blaEC
+    aph(3'')-Ib

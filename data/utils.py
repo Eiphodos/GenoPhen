@@ -13,6 +13,8 @@ def get_unique_word_list(df):
                 if c == 'Hierarchy_data':
                     for g in row[1][c].split(','):
                         all_words += g.split(';')
+                elif c == 'existing_genes':
+                    continue
                 else:
                     all_words += row[1][c].split(',')
             except AttributeError as ae:

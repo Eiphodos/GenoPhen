@@ -6,6 +6,9 @@ model:
 tokenizer:
   use_pretrained: False
   class: RobertaTokenizer
+  columns_for_corpus:
+    - AMR_genotypes_core
+    - Hierarchy_data
   max_len: 256
   special_token_list:
     - <s>

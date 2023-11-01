@@ -31,3 +31,6 @@ data:
     use_hierarchy_data: False
     hierarchy_file_path: D:\Datasets\NCBI\ReferenceGeneHierarchy.txt
     catalog_file_path: D:\Datasets\NCBI\ReferenceGeneCatalog.txt
+genes:
+  mode: random
+  use_complement: True
