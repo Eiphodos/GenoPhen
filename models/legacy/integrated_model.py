@@ -6,6 +6,7 @@ import itertools
 from tqdm import tqdm
 from transformers import get_scheduler
 from misc.metrics import error_rates_legacy
+from torchmetrics.classification import BinaryAccuracy, BinaryRecall, BinaryPrecision, BinarySpecificity
 
 
 def ast_accuracy_2(predicted_values, real_values):        # also do based on R and S to get very major error rate!
@@ -40,10 +41,15 @@ class IntegratedModel:
         #                                   reduction='mean') for v in cfg['antibiotics']['res_ratio_train'].values()]
         self.losses = [nn.CrossEntropyLoss(reduction='mean') for v in cfg['antibiotics']['res_ratio_train'].values()]
 
-        self.acc = [ast_accuracy_2 for _ in range(self.number_ab)]
+        #self.acc = [ast_accuracy_2 for _ in range(self.number_ab)]
+        self.bacc = BinaryAccuracy().to(self.device)
+        self.bspec = BinarySpecificity().to(self.device)
+        self.brec = BinaryRecall().to(self.device)
+        self.bprec = BinaryPrecision().to(self.device)
+
         self.train_dataloader = train_dataloader
-        self.mixed_precision = cfg['mixed_precision']
-        self.scaler = torch.cuda.amp.GradScaler(enabled=cfg['mixed_precision'])
+        #self.mixed_precision = cfg['mixed_precision']
+        #self.scaler = torch.cuda.amp.GradScaler(enabled=cfg['mixed_precision'])
 
         long_param_list = []
         for i in range(len(self.abpred)):
@@ -172,21 +178,36 @@ class IntegratedModel:
         #loss_x = [self.losses[i](ab_x_hat[positions_x == i, :], ab_x_true[positions_x == i])
         #          for i in range(self.number_ab)]
 
-        acc = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
-               for i in range(self.number_ab)]
+        #acc = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+        #       for i in range(self.number_ab)]
 
-        error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
-                       for i in range(self.number_ab)]
+        ab_y_hat_amax = torch.argmax(ab_y_hat, dim=1)
+        acc = [self.bacc(ab_y_hat_amax[positions_y == i], ab_y_true[positions_y == i]) for i in range(self.number_ab) if len(ab_y_true[positions_y == i]) > 0]
+        spec = [self.bspec(ab_y_hat_amax[positions_y == i], ab_y_true[positions_y == i]) for i in range(self.number_ab) if len(ab_y_true[positions_y == i]) > 0]
+        rec = [self.brec(ab_y_hat_amax[positions_y == i], ab_y_true[positions_y == i]) for i in range(self.number_ab) if len(ab_y_true[positions_y == i]) > 0]
+        prec = [self.bprec(ab_y_hat_amax[positions_y == i], ab_y_true[positions_y == i]) for i in range(self.number_ab) if len(ab_y_true[positions_y == i]) > 0]
 
-        me = [error_rates[i][0] for i in range(len(error_rates))]
-        vme = [error_rates[i][1] for i in range(len(error_rates))]
+        #error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+        #               for i in range(self.number_ab) if len(ab_y_true[positions_y == i]) > 0]
+
+        #me = [error_rates[i][0] for i in range(len(error_rates))]
+        #vme = [error_rates[i][1] for i in range(len(error_rates))]
 
         loss_y = sum(loss_y) / len(loss_y)
         #loss_x = sum(loss_x) / len(loss_x)
-        acc = sum(acc) / len(index_list)
-        me = sum(me) / len(index_list)
-        vme = sum(vme) / len(index_list)
-        return ab_y_hat, ab_y_true, loss_y, acc, me, vme
+        #acc = sum(acc) / len(index_list)
+        #me = sum(me) / len(index_list)
+        #vme = sum(vme) / len(index_list)
+
+        acc = sum(acc) / len(acc)
+        spec = sum(spec) / len(spec)
+        rec = sum(rec) / len(rec)
+        prec = sum(prec) / len(prec)
+        me = 1 - spec
+        vme = 1 - rec
+
+
+        return ab_y_hat, ab_y_true, loss_y, acc, me, vme, prec
 
     def val_pass_and_loss(self, input_ids, x, y_pos_antibiotic, y_resp, len_y,
                           total_len_x, attention_mask, gene_ids, val=False):
@@ -200,14 +221,14 @@ class IntegratedModel:
             #loss_x = [self.losses[i](ab_x_hat[positions_x == i, :], ab_x_true[positions_x == i])
             #          for i in range(self.number_ab) if len(ab_x_hat[positions_x == i]) > 0]
 
-            acc_list = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
-                        for i in range(self.number_ab)]
+            #acc_list = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+            #            for i in range(self.number_ab)]
 
-            error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
-                           for i in range(self.number_ab)]
+            #error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+            #               for i in range(self.number_ab)]
 
-            me_list = [error_rates[i][0] for i in range(len(error_rates))]
-            vme_list = [error_rates[i][1] for i in range(len(error_rates))]
+            #me_list = [error_rates[i][0] for i in range(len(error_rates))]
+            #vme_list = [error_rates[i][1] for i in range(len(error_rates))]
 
             #if self.start_ab_stats == True and val == True:
             #    ab_spec_stat(index_list, s_index, r_index, acc_list, me_list, vme_list)
@@ -231,61 +252,65 @@ class IntegratedModel:
         acc_tot = 0
         me_tot = 0
         vme_tot = 0
-        print_every_n_batches = 50
+        prec_tot = 0
+        print_every_n_batches = 10
         curr_batch = 0
         # for input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y, total_len_x, attention, labels in self.train_loader:
         for batch in tqdm(self.train_dataloader):
-            with torch.cuda.amp.autocast(enabled=self.mixed_precision):
-                batch = {k: v.to(self.device) for k, v in batch.items()}
-                input_ids = batch['input_ids']
-                x = batch['ab']
-                x_pos_antibiotic = batch['x pos ab']
-                y_pos_antibiotic = batch['y pos ab']
-                x_resp = batch['x resp']
-                y_resp = batch['y resp']
-                len_x = batch['len x']
-                len_y = batch['len y']
-                total_len_x = batch["total len x"]
-                attention = batch['attention_mask']
-                gene_ids = batch['gene_ids']
-                self.optimizer.zero_grad()
-                ab_y_hat, ab_y_true, loss_y, acc, me, vme = \
-                    self.train_pass_and_loss(input_ids, x, y_pos_antibiotic, y_resp, len_y,
-                                             total_len_x, attention, gene_ids)
+            #with torch.cuda.amp.autocast(enabled=self.mixed_precision):
+            batch = {k: v.to(self.device) for k, v in batch.items()}
+            input_ids = batch['input_ids']
+            x = batch['ab']
+            x_pos_antibiotic = batch['x pos ab']
+            y_pos_antibiotic = batch['y pos ab']
+            x_resp = batch['x resp']
+            y_resp = batch['y resp']
+            len_x = batch['len x']
+            len_y = batch['len y']
+            total_len_x = batch["total len x"]
+            attention = batch['attention_mask']
+            gene_ids = batch['gene_ids']
+            self.optimizer.zero_grad()
+            ab_y_hat, ab_y_true, loss_y, acc, me, vme, prec = \
+                self.train_pass_and_loss(input_ids, x, y_pos_antibiotic, y_resp, len_y,
+                                         total_len_x, attention, gene_ids)
 
-                loss = loss_y  # + loss_x
+            loss = loss_y  # + loss_x
 
-                # Backward Pass
-                #loss.backward()
-                self.scaler.scale(loss).backward()
-                train_loss += loss.item()
+            # Backward Pass
+            loss.backward()
+            #self.scaler.scale(loss).backward()
+            train_loss += loss.item()
 
-                acc_tot += acc
-                me_tot += me
-                vme_tot += vme
-                '''
-                if curr_batch % print_every_n_batches == 0:
-                    #print(batch)
-    
-                    print(curr_batch, "Train loss: {}".format(loss.item()))
-                    print(curr_batch, "Accuracy: {}".format(acc))
-                    print(curr_batch, "Major error: {}".format(me))
-                    print(curr_batch, "Very major error: {}".format(vme))
-    
-                    #print("ab y pred: {}".format(ab_y_hat))
-                    #print("ab x pred: {}".format(ab_y_hat))
-                    #print("ab y true: {}".format(ab_y_hat))
-                    #print("ab x true: {}".format(ab_y_hat))
-                '''
-                curr_batch += 1
+            acc_tot += acc
+            me_tot += me
+            vme_tot += vme
+            prec_tot += prec
+
+            '''
+            if curr_batch % print_every_n_batches == 0:
+                #print(batch)
+
+                print(curr_batch, "Train loss: {}".format(loss.item()))
+                print(curr_batch, "Accuracy: {}".format(acc))
+                print(curr_batch, "Major error: {}".format(me))
+                print(curr_batch, "Very major error: {}".format(vme))
+                print(curr_batch, "Precision: {}".format(prec))
+
+                #print("ab y pred: {}".format(ab_y_hat))
+                #print("ab x pred: {}".format(ab_y_hat))
+                #print("ab y true: {}".format(ab_y_hat))
+                #print("ab x true: {}".format(ab_y_hat))
+            '''
+            curr_batch += 1
 
 
-                n_batch = self.n_batches_train
-                self.train_counter += 1
-                # Update the Weights
-                #self.optimizer.step()
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
+            n_batch = self.n_batches_train
+            self.train_counter += 1
+            # Update the Weights
+            self.optimizer.step()
+            #self.scaler.step(self.optimizer)
+            #self.scaler.update()
         self.epoch += 1
         if self.scheduler:
             self.scheduler.step()
@@ -299,7 +324,7 @@ class IntegratedModel:
         if self.known_gene > 0:
             self.geno_model.eval()
 
-        train_loss = 0.
+        val_loss = 0.
         acc_tot = 0
         me_tot = 0
         vme_tot = 0
@@ -329,7 +354,7 @@ class IntegratedModel:
 
             # Backward Pass
             # loss.backward()
-            # train_loss += loss.item()
+            val_loss += loss_y.item()
 
             ab_y_hat_tot = torch.cat([ab_y_hat_tot, ab_y_hat], dim=0).to(self.device)
             ab_y_true_tot = torch.cat([ab_y_true_tot, ab_y_true], dim=0).to(self.device)
@@ -338,7 +363,7 @@ class IntegratedModel:
         # self.epoch += 1
         if self.scheduler:
             self.scheduler.step()
-        return ab_y_hat_tot, ab_y_true_tot, positions_y_tot
+        return ab_y_hat_tot, ab_y_true_tot, positions_y_tot, val_loss
 
     def train(self, n_epochs: int):
         for e in range(n_epochs):
@@ -358,20 +383,31 @@ class IntegratedModel:
 
             if self.val_loader is not None:
                 if e % self.eval_every_n == 0:
-                    ab_y_hat, ab_y_true, positions_y = self._val_epoch()
+                    ab_y_hat, ab_y_true, positions_y, val_loss = self._val_epoch()
 
-                    acc_list = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
-                                for i in range(self.number_ab)]
+                    #acc_list = [self.acc[i](ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+                    #            for i in range(self.number_ab)]
 
-                    error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
-                                   for i in range(self.number_ab)]
+                    ab_y_hat_amax = torch.argmax(ab_y_hat, dim=1)
+                    acc_list = [self.bacc(ab_y_hat_amax[positions_y == i], ab_y_true[positions_y == i]) if len(ab_y_true[positions_y == i]) > 0 else 0 for i in
+                            range(self.number_ab)]
+                    me_list = [1 - self.bspec(ab_y_hat_amax[positions_y == i], ab_y_true[positions_y == i]) if len(ab_y_true[positions_y == i]) > 0 else 1 for i in
+                            range(self.number_ab)]
+                    vme_list = [1 - self.brec(ab_y_hat_amax[positions_y == i], ab_y_true[positions_y == i]) if len(ab_y_true[positions_y == i]) > 0 else 1 for i in
+                           range(self.number_ab)]
+                    prec_list = [self.bprec(ab_y_hat_amax[positions_y == i], ab_y_true[positions_y == i]) if len(ab_y_true[positions_y == i]) > 0 else 0 for i in
+                            range(self.number_ab)]
 
-                    me_list = [error_rates[i][0] for i in range(len(error_rates))]
-                    vme_list = [error_rates[i][1] for i in range(len(error_rates))]
+                    #error_rates = [error_rates_legacy(ab_y_hat[positions_y == i, :], ab_y_true[positions_y == i])
+                    #               for i in range(self.number_ab)]
+
+                    #me_list = [error_rates[i][0] for i in range(len(error_rates))]
+                    #vme_list = [error_rates[i][1] for i in range(len(error_rates))]
 
                     weighted_acc = 0
                     weighted_me = 0
                     weighted_vme = 0
+                    weighted_prec = 0
                     for i in range(16):
                         if wandb.run is not None:
                             wandb.log({'Val cls {} epoch accuracy'.format(self.ab_abbrev_list[i]['abbrev']): acc_list[i], "epoch": e})
@@ -379,7 +415,12 @@ class IntegratedModel:
                         weighted_me += me_list[i] * self.weights_s_val[i]
                         weighted_vme += vme_list[i] * self.weights_r_val[i]
 
+
                     if wandb.run is not None:
                         wandb.log({'Val epoch accuracy': weighted_acc, "epoch": e})
                         wandb.log({'Val epoch major error rate': weighted_me, "epoch": e})
                         wandb.log({'Val epoch very major error rate': weighted_vme, "epoch": e})
+
+                    print("Val epoch {} weighted acc: {}".format(self.epoch, weighted_acc))
+                    print("Val epoch {} weighted major error: {}".format(self.epoch, weighted_me))
+                    print("Val epoch {} weighted very major error rate: {}".format(self.epoch, weighted_vme))

@@ -1,6 +1,7 @@
 import random
 import numpy as np
 from torch.utils.data import Dataset
+import torch
 
 
 class GenoPTDataset(Dataset):
@@ -9,6 +10,7 @@ class GenoPTDataset(Dataset):
         self.data = data
         self.hierarchy_variant = hierarchy_variant
         self.max_n_hier = max_n_hier
+
 
     def __len__(self):
         return len(self.data)
@@ -28,7 +30,7 @@ class GenoPTDataset(Dataset):
                 gene_words, h = zip(*z)
 
                 h = [self.tokenizer.encode(a.split(';'), add_special_tokens=False) for a in h]
-                h = [[self.tokenizer.bos_token_id]*self.max_n_hier] + h + [[self.tokenizer.eos_token_id]*self.max_n_hier]
+                h = [[self.tokenizer.cls_token_id]*self.max_n_hier] + h + [[self.tokenizer.eos_token_id]*self.max_n_hier]
                 data_dict['gene_ids'] = h
             elif self.hierarchy_variant == 'separate':
                 w = self.data['Hierarchy_data'].iloc[idx]
@@ -45,8 +47,47 @@ class GenoPTDataset(Dataset):
             w = w.split(',')
             gene_words = w
             random.shuffle(gene_words)
-        tokenized_words = self.tokenizer.encode(gene_words)
+        tokenized_words = self.tokenizer.encode(gene_words, add_special_tokens=False)
+        tokenized_words = [self.tokenizer.cls_token_id] + tokenized_words
         data_dict['input_ids'] = tokenized_words
+        return data_dict
+
+
+class GenoPTAllGenesDataset(Dataset):
+    def __init__(self, data, tokenizer, unique_genes):
+        self.tokenizer = tokenizer
+        self.data = data
+        self.unique_genes = unique_genes
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        data_dict = {}
+
+        g = self.data['AMR_genotypes_core'].iloc[idx]
+        gi = self.data['existing_genes'].iloc[idx]
+        g = g.split(',')
+        ng = len(g)
+        gene_exist = [1]*ng
+
+        ug = self.unique_genes.copy()
+        ug = [v for i, v in enumerate(ug) if i not in gi]
+        random.shuffle(ug)
+        genes_not_existing = ug[0:ng]
+        gene_not_exist = [0]*ng
+
+        g = g + genes_not_existing
+        gene_xist_emb = gene_exist + gene_not_exist
+
+        z = list(zip(g, gene_xist_emb))
+        random.shuffle(z)
+        g, gene_xist_emb = zip(*z)
+
+        tokenized_words = [self.tokenizer.cls_token_id] + self.tokenizer.encode(g, add_special_tokens=False)
+        gene_xist_emb = gene_xist_emb
+        data_dict['input_ids'] = tokenized_words
+        data_dict['gene_ids'] = gene_xist_emb
         return data_dict
 
 
@@ -59,7 +100,7 @@ class GenoPhenoFTDataset_legacy(Dataset):
         self.tokenizer_pheno = tokenizer_pheno
         self.test_count = 0
         self.max_unknown_ab = 12
-        self.max_total_ab = 14
+        self.max_total_ab = 15
         self.hierarchy_variant = hierarchy_variant
         self.max_n_hier = max_n_hier
 

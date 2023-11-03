@@ -56,6 +56,9 @@ def preprocess_data(cfg):
         if "AMR_genotypes_core" in columns and cfg['data']['filter']['aph_aac']:
             df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(clean_aap_aac)
             print("FILTER APH_AAC: Dataframe with {} rows".format(len(df)))
+        if "AMR_genotypes_core" in columns and cfg['data']['filter']['min_geno'] > 0:
+            df = df[df['AMR_genotypes_core'].apply(filter_len, min_length=cfg['data']['filter']['min_geno'])]
+            print("FILTER GENO LEN: Dataframe with {} rows".format(len(df)))
 
         if cfg['genes']['use_complement'] and "AMR_genotypes_core" in columns:
             columns.append('existing_genes')
@@ -75,9 +78,6 @@ def preprocess_data(cfg):
 
 
         ### OTHER FILTERS ###
-        if "AMR_genotypes_core" in columns and cfg['data']['filter']['min_geno'] > 0:
-            df = df[df['AMR_genotypes_core'].apply(filter_len, min_length=cfg['data']['filter']['min_geno'])]
-            print("FILTER GENO LEN: Dataframe with {} rows".format(len(df)))
         if "AST_phenotypes" in columns:
             df = clean_pheno_data(cfg, df)
             print("CLEAN PHENO: Dataframe with {} rows".format(len(df)))

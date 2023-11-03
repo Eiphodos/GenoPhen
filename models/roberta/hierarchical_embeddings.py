@@ -136,15 +136,6 @@ class RobertaHierarchicalEmbeddingsV2(nn.Module):
         embeddings = self.dropout(embeddings)
         return embeddings
 
-    def summed_emb(self, gene_id, hierarch_ids):
-        if gene_id.item() == self.pad_token_id or gene_id.item() == self.mask_token_id:
-            return self.word_embeddings(gene_id)
-        else:
-            #all_ids = torch.cat([gene_id, hierarch_ids], dim=0)
-            embed_all_ids = self.word_embeddings(hierarch_ids)
-            sum_embed = torch.sum(embed_all_ids, dim=0)
-            return sum_embed
-
 
     def create_position_ids_from_inputs_embeds(self, inputs_embeds):
         """

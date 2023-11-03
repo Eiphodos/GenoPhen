@@ -1,8 +1,10 @@
 from transformers import DataCollatorForLanguageModeling, DataCollatorWithPadding
-from data.hierarchical_datacollators import HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding, HierSumDataCollatorForLanguageModeling, HierSumDataCollatorWithPadding
+from data.hierarchical_datacollators import (HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding,
+                                             HierSumDataCollatorForLanguageModeling, HierSumDataCollatorWithPadding)
+from data.random_datacollators import GEDataCollatorForLanguageModeling
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe, combinatorial_data_generator, weights_separated_by_label
-from data.datasets import GenoPTDataset, GenoPhenoFTDataset_legacy
+from data.datasets import GenoPTDataset, GenoPTAllGenesDataset, GenoPhenoFTDataset_legacy
 import os
 
 
@@ -25,6 +27,12 @@ def build_pt_dataloaders(cfg, dataframe, tokenizer):
                 tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability'])
         else:
             raise NotImplementedError('Hierarchy variant {} is not implemented!'.format(cfg['data']['hierarchy']['hierarchy_variant']))
+    elif cfg['genes']['mode'] == 'random':
+        train_dataset = GenoPTAllGenesDataset(train_dataframe, tokenizer, unique_genes=cfg['genes']['unique_genes'])
+        val_dataset = GenoPTAllGenesDataset(val_dataframe, tokenizer, unique_genes=cfg['genes']['unique_genes'])
+        data_collator = GEDataCollatorForLanguageModeling(
+            tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']
+        )
     else:
         train_dataset = GenoPTDataset(train_dataframe, tokenizer)
         val_dataset = GenoPTDataset(val_dataframe, tokenizer)

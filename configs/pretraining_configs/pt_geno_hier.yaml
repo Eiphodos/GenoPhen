@@ -9,7 +9,7 @@ species:
   Kleb:
     file_path: /media/david/T7/NCBI/Klebsiella/PDG000000012.1486.amr.metadata.tsv
 data:
-  load_preprocessed_data: True
+  load_preprocessed_data: False
   preprocessed_data_file_path: D:\Models\GenoPhen\Pretraining\Geno\PT_Hier3\pp_data.tsv
   species:
     - E_Coli

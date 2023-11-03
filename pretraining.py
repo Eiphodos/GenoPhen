@@ -79,7 +79,7 @@ def main(args):
     scaler = torch.cuda.amp.GradScaler(enabled=cfg['mixed_precision'])
 
     ### Setup metrics ###
-    val_acc = MulticlassAccuracy(device=device)
+    val_acc = MulticlassAccuracy(device=device, average='micro')
     train_loss = Mean(device=device)
     val_loss = Mean(device=device)
     best_val_metric = 0.0

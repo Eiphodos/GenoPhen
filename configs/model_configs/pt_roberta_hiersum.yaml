@@ -6,7 +6,7 @@ model:
 tokenizer:
   use_pretrained: False
   class: RobertaTokenizer
-  columns_for_corpus:
+  columns_for_vocab:
     - AMR_genotypes_core
     - Hierarchy_data
   max_len: 256

@@ -46,12 +46,12 @@ def error_rates_legacy(predicted_values, real_values):
                 s_correct += 1
 
     if s_count == 0:
-        major_error_rate = 0
+        major_error_rate = 1
     else:
         major_error_rate = 1 - s_correct / s_count
 
     if r_count == 0:
-        very_major_error_rate = 0
+        very_major_error_rate = 1
     else:
         very_major_error_rate = 1 - r_correct / r_count
 

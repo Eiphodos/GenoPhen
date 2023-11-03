@@ -1,8 +1,9 @@
 import os
 import tokenizers
 import transformers
+import json
 from models.roberta.tokenization_roberta import RobertaTokenizer
-from data.utils import get_unique_word_list, create_corpus
+from data.utils import get_unique_word_list
 
 
 def build_tokenizer(cfg, dataframe):
@@ -16,25 +17,24 @@ def build_tokenizer(cfg, dataframe):
 
 
 def create_and_train_tokenizer(cfg, dataframe):
-    base_tokenizer = tokenizers.ByteLevelBPETokenizer()
-
-    corpus = create_corpus(cfg, dataframe)
-
-    vocab = get_unique_word_list(dataframe[cfg['tokenizer']['columns_for_corpus']])
-    print("Size of vocabulary before training: {}".format(len(vocab)))
-    vocab = cfg['tokenizer']['special_token_list'] + vocab
-
-    base_tokenizer.train(files=os.path.join(cfg['log_dir'], 'corpus.txt'), vocab_size=len(vocab), min_frequency=2,
-                   special_tokens=vocab)
-    print("Size of vocabulary after training: {}".format(len(vocab)))
-
-    base_tokenizer.save_model(directory=cfg['log_dir'])
-
-    if cfg['tokenizer']['class'] == "RobertaTokenizer":
-        tokenizer_c = RobertaTokenizer
-    tokenizer = tokenizer_c.from_pretrained(cfg['log_dir'], max_length=cfg['tokenizer']['max_len'])
+    roberta_special_tokens = {"<s>": 0, "<pad>": 1, "</s>": 2, "<mask>": 3, "<unk>": 4}
     if cfg['data']['hierarchy']['use_hierarchy_data']:
-        tokenizer.add_special_tokens({'additional_special_tokens': ["<gpsep>"]})
+        roberta_special_tokens["<gpsep>"] = 5
+
+    vocab = get_unique_word_list(dataframe[cfg['tokenizer']['columns_for_vocab']])
+    vocab_indexes = list(range(len(roberta_special_tokens), len(vocab) + len(roberta_special_tokens)))
+    vvi = zip(vocab, vocab_indexes)
+    other_tokens = {k: v for k, v in vvi}
+    all_tokens = {**roberta_special_tokens, **other_tokens}
+    vocab_path = os.path.join(cfg['log_dir'], "vocab.json")
+    merges_path = os.path.join(cfg['log_dir'], "merges.txt")
+    with open(vocab_path, "w") as vocabfile:
+        json.dump(all_tokens, vocabfile)
+
+    with open(merges_path, "w") as mergesfile:
+        mergesfile.write("#version: 0.2")
+
+    tokenizer = RobertaTokenizer(vocab_file=vocab_path, merges_file=merges_path)
     tokenizer.save_pretrained(save_directory=cfg['log_dir'])
 
     return tokenizer

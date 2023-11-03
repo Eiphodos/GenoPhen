@@ -4,6 +4,8 @@ import torch.nn as nn
 from models.roberta.configuration_roberta import RobertaConfig
 from models.roberta.modeling_roberta import RobertaForMaskedLM, RobertaModel
 from models.roberta.hierarchical_roberta import RobertaHierForMaskedLM, RobertaHierModel
+from models.roberta.gene_exist_roberta import RobertaGEForMaskedLM, RobertaGEModel
+from models.roberta.gene_exist_embeddings import RobertaGEEmbeddings
 from models.roberta.hierarchical_embeddings import RobertaHierarchicalEmbeddingsV1, RobertaHierarchicalEmbeddingsV2
 from models.legacy.antibiotic_model import AntibioticModelTrain
 from models.legacy.d2l_bert import BERTModel
@@ -40,6 +42,16 @@ def build_pt_model(cfg, tokenizer):
                                               hidden_size=cfg['model']['hidden_size'])
         emb = RobertaHierarchicalEmbeddingsV2(config=m_config)
         model = RobertaHierForMaskedLM(m_config, emb)
+
+    if cfg['model']['class'] == 'RobertaGEForMaskedLM':
+        m_config = RobertaConfig(vocab_size=tokenizer.vocab_size,
+                                              max_position_embeddings=50,
+                                              num_attention_heads=cfg['model']['n_attention_heads'],
+                                              num_hidden_layers=cfg['model']['n_hidden_layers'],
+                                              type_vocab_size=1,
+                                              hidden_size=cfg['model']['hidden_size'])
+        emb = RobertaGEEmbeddings(config=m_config)
+        model = RobertaGEForMaskedLM(m_config, emb)
 
     return model
 
@@ -166,4 +178,6 @@ def build_ft_legacy_model(cfg, tokenizer_geno, train_dataloader, val_dataloader)
 
             model = IntegratedModel(cfg, pheno_model, geno_model, train_dataloader, val_dataloader)
 
+    print("Built model....")
+    print(model)
     return model
