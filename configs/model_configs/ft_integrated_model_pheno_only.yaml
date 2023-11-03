@@ -4,19 +4,19 @@ model:
   input_dim: 256
   out_dim: 2
   pheno:
-    use_pretrained: False
+    use_pretrained: True
     pretrained_weights: D:\Models\GenoPhen\Pretraining\Pheno\Legacy\bert_state_dict.pth
     class: AntibioticModelTrain
-    num_hiddens: 256
-    norm_shape: 256
-    ffn_num_input: 256
-    ffn_num_hiddens: 128
-    attention_heads: 2
-    attention_layers: 2
-    dropout: 0.25
-    key_size: 256
-    query_size: 256
-    value_size: 256
+    num_hiddens: 2046
+    norm_shape: 2046
+    ffn_num_input: 2046
+    ffn_num_hiddens: 256
+    attention_heads: 1
+    attention_layers: 1
+    dropout: 0.05
+    key_size: 2046
+    query_size: 2046
+    value_size: 2046
   geno:
     use_pretrained: True
     pretrained_weights: D:\Models\GenoPhen\Pretraining\Geno\RobertaForMaskedLM_2023-10-02-15_47
