@@ -102,7 +102,6 @@ class GEDataCollatorForLanguageModeling:
         # If special token mask has been preprocessed, pop it from the dict.
         batch['special_tokens_mask'] = torch.tensor([[1 if token == 2 else 0 for token in val] for val in gene_ids.tolist()], dtype=torch.bool)
         special_tokens_mask = batch.pop("special_tokens_mask", None)
-        print(batch["gene_ids"][0])
         if self.mlm:
             batch["gene_ids"], batch["labels"] = self.torch_mask_tokens(
                 batch["gene_ids"], special_tokens_mask=special_tokens_mask
@@ -112,9 +111,6 @@ class GEDataCollatorForLanguageModeling:
             if self.tokenizer.pad_token_id is not None:
                 labels[labels == 2] = -100
             batch["labels"] = labels
-        print(batch["gene_ids"][0])
-        print(special_tokens_mask[0])
-        print(batch["labels"][0])
 
         return batch
 
