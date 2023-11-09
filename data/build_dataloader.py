@@ -28,8 +28,10 @@ def build_pt_dataloaders(cfg, dataframe, tokenizer):
         else:
             raise NotImplementedError('Hierarchy variant {} is not implemented!'.format(cfg['data']['hierarchy']['hierarchy_variant']))
     elif cfg['genes']['mode'] == 'random':
-        train_dataset = GenoPTAllGenesDataset(train_dataframe, tokenizer, unique_genes=cfg['genes']['unique_genes'])
-        val_dataset = GenoPTAllGenesDataset(val_dataframe, tokenizer, unique_genes=cfg['genes']['unique_genes'])
+        train_dataset = GenoPTAllGenesDataset(train_dataframe, tokenizer, unique_genes=cfg['genes']['unique_genes'],
+                                              gene_probs=cfg['genes']['unique_genes_ratio'])
+        val_dataset = GenoPTAllGenesDataset(val_dataframe, tokenizer, unique_genes=cfg['genes']['unique_genes'],
+                                            gene_probs=cfg['genes']['unique_genes_ratio'])
         data_collator = GEDataCollatorForLanguageModeling(
             tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']
         )

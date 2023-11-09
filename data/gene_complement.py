@@ -13,6 +13,26 @@ def build_gene_complement(cfg, df):
 
     df['existing_genes'] = df['AMR_genotypes_core'].apply(gene_exist, unique_genes=unique_genes)
 
+    cfg['genes']['unique_genes_frequencies'] = {k: 0 for k in unique_genes}
+    cfg['genes']['unique_genes_ratio'] = []
+    total_genes = 0
+    for j, row in df.iterrows():
+        genes = row['AMR_genotypes_core'].split(',')
+        for g in genes:
+            cfg['genes']['unique_genes_frequencies'][g] += 1
+            total_genes += 1
+
+    print("Total genes found: {}".format(total_genes))
+    mcg = max(cfg['genes']['unique_genes_frequencies'], key=cfg['genes']['unique_genes_frequencies'].get)
+    print("Most common gene: {}".format(mcg))
+
+    for k in cfg['genes']['unique_genes_frequencies'].keys():
+        cfg['genes']['unique_genes_ratio'].append(cfg['genes']['unique_genes_frequencies'][k] / total_genes)
+
+    fmcg = cfg['genes']['unique_genes_ratio'][list(cfg['genes']['unique_genes_frequencies'].keys()).index(mcg)]
+    print("Frequency for most common gene: {}".format(fmcg))
+
+
     return df
 
 

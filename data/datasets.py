@@ -54,10 +54,11 @@ class GenoPTDataset(Dataset):
 
 
 class GenoPTAllGenesDataset(Dataset):
-    def __init__(self, data, tokenizer, unique_genes):
+    def __init__(self, data, tokenizer, unique_genes, gene_probs):
         self.tokenizer = tokenizer
         self.data = data
         self.unique_genes = unique_genes
+        self.gene_probs = gene_probs
 
     def __len__(self):
         return len(self.data)
@@ -71,10 +72,10 @@ class GenoPTAllGenesDataset(Dataset):
         ng = len(g)
         gene_exist = [1]*ng
 
-        ug = self.unique_genes.copy()
-        ug = [v for i, v in enumerate(ug) if i not in gi]
-        random.shuffle(ug)
-        genes_not_existing = ug[0:ng]
+
+        probs = self.gene_probs.copy()
+        probs[gi] = 0.0
+        genes_not_existing = np.random.choice(self.unique_genes, size=ng, replace=False, p=probs)
         gene_not_exist = [0]*ng
 
         g = g + genes_not_existing
