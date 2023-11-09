@@ -58,7 +58,7 @@ class GenoPTAllGenesDataset(Dataset):
         self.tokenizer = tokenizer
         self.data = data
         self.unique_genes = unique_genes
-        self.gene_probs = gene_probs
+        self.gene_probs = np.array(gene_probs)
 
     def __len__(self):
         return len(self.data)
