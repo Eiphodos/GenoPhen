@@ -1,7 +1,6 @@
 log_dir: D:\Models\GenoPhen\Pretraining\Geno
 training:
   mlm_probability: 0.5
-  val_every_n_epochs: 1
 optimizer:
   lr: 0.00025
 species:
