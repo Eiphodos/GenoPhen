@@ -76,7 +76,7 @@ class GenoPTAllGenesDataset(Dataset):
         probs = self.gene_probs.copy()
         probs[gi] = 0.0
         probs = probs * (1 / probs.sum()) # Renormalize so that sum is equal to 1 again.
-        genes_not_existing = np.random.choice(self.unique_genes, size=ng, replace=False, p=probs)
+        genes_not_existing = list(np.random.choice(self.unique_genes, size=ng, replace=False, p=probs))
         gene_not_exist = [0]*ng
 
         g = g + genes_not_existing
