@@ -93,6 +93,61 @@ class GenoPTAllGenesDataset(Dataset):
         return data_dict
 
 
+class GenoPTRandomGenesDataset(Dataset):
+    def __init__(self, data, tokenizer, unique_genes, gene_probs, n_genes):
+        self.tokenizer = tokenizer
+        self.data = data
+        self.unique_genes = unique_genes
+        self.gene_probs = np.array(gene_probs)
+        self.n_genes = n_genes
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        data_dict = {}
+
+        g = self.data['AMR_genotypes_core'].iloc[idx]
+        gi = self.data['existing_genes'].iloc[idx]
+        g = g.split(',')
+
+        random_genes = list(np.random.choice(self.unique_genes, size=self.n_genes, replace=False, p=self.gene_probs))
+        gene_exist_emb = [1 if a in g else 0 for a in random_genes]
+
+        z = list(zip(random_genes, gene_exist_emb))
+        random.shuffle(z)
+        random_genes, gene_exist_emb = zip(*z)
+        random_genes = list(random_genes)
+        gene_exist_emb = list(gene_exist_emb)
+        
+        existing_genes_to_guess = [b for b in g if b not in random_genes]
+        if len(existing_genes_to_guess) > 0:
+            n_gtg = len(existing_genes_to_guess)
+            inc_genes = list(random_genes) + existing_genes_to_guess
+            updated_probs = np.array([p if p not in inc_genes else 0.0 for p in self.gene_probs])
+            updated_probs = updated_probs * (1 / updated_probs.sum())
+            not_existing_genes_to_guess = list(np.random.choice(self.unique_genes, size=n_gtg,
+                                                                replace=False, p=updated_probs))
+            genes_to_guess_emb = [1]*n_gtg + [0]*n_gtg
+            genes_to_guess = existing_genes_to_guess + not_existing_genes_to_guess
+
+            z = list(zip(genes_to_guess, genes_to_guess_emb))
+            random.shuffle(z)
+            genes_to_guess, genes_to_guess_emb = zip(*z)
+            genes_to_guess = list(genes_to_guess)
+            genes_to_guess_emb = list(genes_to_guess_emb)
+
+            all_genes = random_genes + genes_to_guess
+            gene_ids = gene_exist_emb + genes_to_guess_emb
+        else:
+            all_genes = random_genes
+            gene_ids = gene_exist_emb
+
+        tokenized_words = [self.tokenizer.cls_token_id] + self.tokenizer.encode(all_genes, add_special_tokens=False)
+        data_dict['input_ids'] = tokenized_words
+        data_dict['gene_ids'] = gene_ids
+        return data_dict
+
 class GenoPhenoFTDataset_legacy(Dataset):
     def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno, hierarchy_variant=None, max_n_hier=9):
         self.ab_index_list = cfg['antibiotics']['index_list']

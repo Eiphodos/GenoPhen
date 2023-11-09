@@ -27,11 +27,11 @@ data:
     forward_slash: True
     min_geno: 3
     min_ab: 0
-  known_gene: 3
+  known_gene: 5
   hierarchy:
     use_hierarchy_data: False
     hierarchy_file_path: D:\Datasets\NCBI\ReferenceGeneHierarchy.txt
     catalog_file_path: D:\Datasets\NCBI\ReferenceGeneCatalog.txt
 genes:
-  mode: random
+  mode: allrandom
   use_complement: True

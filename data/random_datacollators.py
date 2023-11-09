@@ -152,6 +152,134 @@ class GEDataCollatorForLanguageModeling:
         return gene_exist, labels
 
 
+@dataclass
+class GERandDataCollatorForLanguageModeling:
+    """
+    Data collator used for language modeling. Inputs are dynamically padded to the maximum length of a batch if they
+    are not all of the same length.
+
+    Args:
+        tokenizer ([`PreTrainedTokenizer`] or [`PreTrainedTokenizerFast`]):
+            The tokenizer used for encoding the data.
+        mlm (`bool`, *optional*, defaults to `True`):
+            Whether or not to use masked language modeling. If set to `False`, the labels are the same as the inputs
+            with the padding tokens ignored (by setting them to -100). Otherwise, the labels are -100 for non-masked
+            tokens and the value to predict for the masked token.
+        mlm_probability (`float`, *optional*, defaults to 0.15):
+            The probability with which to (randomly) mask tokens in the input, when `mlm` is set to `True`.
+        pad_to_multiple_of (`int`, *optional*):
+            If set will pad the sequence to a multiple of the provided value.
+        return_tensors (`str`):
+            The type of Tensor to return. Allowable values are "np", "pt" and "tf".
+
+    <Tip>
+
+    For best performance, this data collator should be used with a dataset having items that are dictionaries or
+    BatchEncoding, with the `"special_tokens_mask"` key, as returned by a [`PreTrainedTokenizer`] or a
+    [`PreTrainedTokenizerFast`] with the argument `return_special_tokens_mask=True`.
+
+    </Tip>"""
+
+    tokenizer: PreTrainedTokenizerBase
+    mlm: bool = True
+    mlm_probability: float = 0.15
+    pad_to_multiple_of: Optional[int] = None
+    tf_experimental_compile: bool = False
+    return_tensors: str = "pt"
+    n_known_genes: int = 5
+
+    def __post_init__(self):
+        if self.mlm and self.tokenizer.mask_token is None:
+            raise ValueError(
+                "This tokenizer does not have a mask token which is necessary for masked language modeling. "
+                "You should pass `mlm=False` to train on causal language modeling instead."
+            )
+        if self.tf_experimental_compile:
+            import tensorflow as tf
+
+            self.tf_mask_tokens = tf.function(self.tf_mask_tokens, jit_compile=True)
+
+    def __call__(self, examples: List[Union[List[int], Any, Dict[str, Any]]]) -> Dict[str, Any]:
+
+        # Handle dict or lists with proper padding and conversion to tensor.
+        input_ids = [{'input_ids': v['input_ids']} for v in examples]
+        gene_ids = [{'gene_ids': v['gene_ids']} for v in examples]
+        max_len_ii = max([len(ii['input_ids']) for ii in input_ids])
+
+        if isinstance(examples[0], Mapping):
+            batch = self.tokenizer.pad(input_ids, return_tensors="pt", padding='max_length', max_length=max_len_ii)
+        else:
+            batch = {
+                "input_ids": _torch_collate_batch(examples, self.tokenizer, pad_to_multiple_of=self.pad_to_multiple_of)
+            }
+
+        gene_ids = [torch.IntTensor(v['gene_ids']) for v in gene_ids]
+        gene_ids = torch.nn.utils.rnn.pad_sequence(gene_ids, batch_first=True, padding_value=2)
+
+        # If special token mask has been preprocessed, pop it from the dict.
+        labels = gene_ids.clone()
+        labels = labels
+
+        gene_ids[:, self.n_known_genes:][gene_ids[:, self.n_known_genes:] != 2] = 3 # Mask all unknown genes
+        labels[gene_ids != 3] = -100 # Only compute loss on masked genes
+
+        batch['gene_ids'] = gene_ids
+        batch['labels'] = labels
+
+        '''
+        batch['special_tokens_mask'] = torch.tensor([[1 if token == 2 or i < self.n_known_genes else 0 for i, token in enumerate(val)] for val in gene_ids.tolist()], dtype=torch.bool)
+        special_tokens_mask = batch.pop("special_tokens_mask", None)
+        if self.mlm:
+            batch["gene_ids"], batch["labels"] = self.torch_mask_tokens(
+                batch["gene_ids"], special_tokens_mask=special_tokens_mask
+            )
+        else:
+            labels = batch["input_ids"].clone()
+            if self.tokenizer.pad_token_id is not None:
+                labels[labels == 2] = -100
+            batch["labels"] = labels
+        '''
+        return batch
+
+    def torch_mask_tokens(self, gene_exist: Any, special_tokens_mask: Optional[Any] = None) -> Tuple[Any, Any]:
+        """
+        Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
+        """
+        import torch
+
+        labels = gene_exist.clone()
+        labels = labels
+
+        # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
+        probability_matrix = torch.full(labels.shape, self.mlm_probability)
+        if special_tokens_mask is None:
+            special_tokens_mask = [
+                self.tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in labels.tolist()
+            ]
+            special_tokens_mask = torch.tensor(special_tokens_mask, dtype=torch.bool)
+        else:
+            special_tokens_mask = special_tokens_mask.bool()
+
+        probability_matrix.masked_fill_(special_tokens_mask, value=0.0)
+        masked_indices = torch.bernoulli(probability_matrix).bool()
+        labels[~masked_indices] = -100  # We only compute loss on masked tokens
+
+        # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
+        indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.9)).bool() & masked_indices
+        #inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(self.tokenizer.mask_token)
+        gene_exist[indices_replaced] = 3
+
+        # 10% of the time, we replace masked input tokens with random word
+        #indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
+        #random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
+        #inputs[indices_random] = random_words[indices_random]
+        #gene_ids[indices_random,:] = random_words[indices_random]
+
+        # The rest of the time (10% of the time) we keep the masked input tokens unchanged
+        return gene_exist, labels
+
+
+
 def _torch_collate_batch(examples, tokenizer, pad_to_multiple_of: Optional[int] = None):
     """Collate `examples` into a batch, using the information in `tokenizer` for padding if necessary."""
 

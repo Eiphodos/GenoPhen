@@ -1,10 +1,10 @@
 from transformers import DataCollatorForLanguageModeling, DataCollatorWithPadding
 from data.hierarchical_datacollators import (HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding,
                                              HierSumDataCollatorForLanguageModeling, HierSumDataCollatorWithPadding)
-from data.random_datacollators import GEDataCollatorForLanguageModeling
+from data.random_datacollators import GEDataCollatorForLanguageModeling, GERandDataCollatorForLanguageModeling
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe, combinatorial_data_generator, weights_separated_by_label
-from data.datasets import GenoPTDataset, GenoPTAllGenesDataset, GenoPhenoFTDataset_legacy
+from data.datasets import GenoPTDataset, GenoPTAllGenesDataset, GenoPhenoFTDataset_legacy, GenoPTRandomGenesDataset
 import os
 
 
@@ -34,6 +34,15 @@ def build_pt_dataloaders(cfg, dataframe, tokenizer):
                                             gene_probs=cfg['genes']['unique_genes_ratio'])
         data_collator = GEDataCollatorForLanguageModeling(
             tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability']
+        )
+    elif cfg['genes']['mode'] == 'allrandom':
+        train_dataset = GenoPTRandomGenesDataset(train_dataframe, tokenizer, unique_genes=cfg['genes']['unique_genes'],
+                                              gene_probs=cfg['genes']['unique_genes_ratio'], n_genes=cfg['data']['known_gene'])
+        val_dataset = GenoPTRandomGenesDataset(val_dataframe, tokenizer, unique_genes=cfg['genes']['unique_genes'],
+                                            gene_probs=cfg['genes']['unique_genes_ratio'], n_genes=cfg['data']['known_gene'])
+        data_collator = GERandDataCollatorForLanguageModeling(
+            tokenizer=tokenizer, mlm=True, mlm_probability=cfg['training']['mlm_probability'],
+            n_known_genes=cfg['data']['known_gene']
         )
     else:
         train_dataset = GenoPTDataset(train_dataframe, tokenizer)
