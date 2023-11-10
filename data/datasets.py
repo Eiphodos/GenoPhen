@@ -312,32 +312,9 @@ class GenoPhenoFTDatasetRandGenes(Dataset):
         random_genes = list(random_genes)
         gene_exist_emb = list(gene_exist_emb)
 
-        existing_genes_to_guess = [b for b in geno_x if b not in random_genes]
-        if len(existing_genes_to_guess) > 0:
-            n_gtg = len(existing_genes_to_guess)
-            inc_genes = list(random_genes) + existing_genes_to_guess
-            updated_probs = np.array([p if p not in inc_genes else 0.0 for p in self.gene_probs])
-            updated_probs = updated_probs * (1 / updated_probs.sum())
-            not_existing_genes_to_guess = list(np.random.choice(self.unique_genes, size=n_gtg,
-                                                                replace=False, p=updated_probs))
-            genes_to_guess_emb = [1]*n_gtg + [0]*n_gtg
-            genes_to_guess = existing_genes_to_guess + not_existing_genes_to_guess
-
-            z = list(zip(genes_to_guess, genes_to_guess_emb))
-            random.shuffle(z)
-            genes_to_guess, genes_to_guess_emb = zip(*z)
-            genes_to_guess = list(genes_to_guess)
-            genes_to_guess_emb = list(genes_to_guess_emb)
-
-            all_genes = random_genes + genes_to_guess
-            gene_ids = gene_exist_emb + genes_to_guess_emb
-        else:
-            all_genes = random_genes
-            gene_ids = gene_exist_emb
-
-        tokenized_genes = [self.tokenizer_geno.cls_token_id] + self.tokenizer_geno.encode(all_genes, add_special_tokens=False)
+        tokenized_genes = [self.tokenizer_geno.cls_token_id] + self.tokenizer_geno.encode(random_genes, add_special_tokens=False)
         data_dict['input_ids'] = tokenized_genes
-        data_dict['gene_ids'] = gene_ids
+        data_dict['gene_ids'] = gene_exist_emb
 
         ### Get Phenotype data ###
         ab_x = sample_data['AST_phenotypes_x']
