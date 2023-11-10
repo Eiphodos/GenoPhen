@@ -1,0 +1,29 @@
+log_dir: D:\Models\GenoPhen\Finetuning
+training:
+  n_epochs: 50
+  val_every_n_epochs: 2
+optimizer:
+  lr: 0.000001
+data:
+  species:
+    - E_Coli
+  columns:
+    - AMR_genotypes_core
+    - AST_phenotypes
+  filter:
+    point: False
+    partial: True
+    partial_contig: True
+    mistranslation: True
+    hmm: True
+    bla: True
+    aph_aac: True
+    doubles_pheno: True
+    doubles_geno: False
+    min_geno: 1
+    min_ab: 1
+  known_ab: 0
+  known_gene: 5
+genes:
+  mode: allrandom
+  use_complement: True

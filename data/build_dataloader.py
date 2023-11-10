@@ -1,10 +1,10 @@
 from transformers import DataCollatorForLanguageModeling, DataCollatorWithPadding
 from data.hierarchical_datacollators import (HierDataCollatorForLanguageModeling, HierDataCollatorWithPadding,
                                              HierSumDataCollatorForLanguageModeling, HierSumDataCollatorWithPadding)
-from data.random_datacollators import GEDataCollatorForLanguageModeling, GERandDataCollatorForLanguageModeling
+from data.random_datacollators import GEDataCollatorForLanguageModeling, GERandDataCollatorForLanguageModeling, GERandDataCollatorWithPadding
 from torch.utils.data import DataLoader, SequentialSampler
 from data.utils import cv_split_dataframe, combinatorial_data_generator, weights_separated_by_label
-from data.datasets import GenoPTDataset, GenoPTAllGenesDataset, GenoPhenoFTDataset_legacy, GenoPTRandomGenesDataset
+from data.datasets import GenoPTDataset, GenoPTAllGenesDataset, GenoPhenoFTDataset_legacy, GenoPTRandomGenesDataset, GenoPhenoFTDatasetRandGenes
 import os
 
 
@@ -96,10 +96,20 @@ def build_ft_legacy_dataloaders(cfg, dataframe, tokenizer_geno, tokenizer_pheno)
             data_collator = HierSumDataCollatorWithPadding(tokenizer=tokenizer_geno)
         elif cfg['data']['hierarchy']['hierarchy_variant'] == 'separate':
             data_collator = HierDataCollatorWithPadding(tokenizer=tokenizer_geno)
+    elif cfg['genes']['mode'] == 'allrandom':
+        train_dataset = GenoPhenoFTDatasetRandGenes(cfg, comb_train_dataframe, tokenizer_geno, tokenizer_pheno,
+                                                    unique_genes=cfg['genes']['unique_genes'],
+                                                    gene_probs=cfg['genes']['unique_genes_ratio'],
+                                                    n_genes=cfg['data']['known_gene'])
+        val_dataset = GenoPhenoFTDatasetRandGenes(cfg, comb_val_dataframe, tokenizer_geno, tokenizer_pheno,
+                                                  unique_genes=cfg['genes']['unique_genes'],
+                                                  gene_probs=cfg['genes']['unique_genes_ratio'],
+                                                  n_genes=cfg['data']['known_gene'])
+        data_collator = DataCollatorWithPadding(tokenizer=tokenizer_geno)
     else:
         train_dataset = GenoPhenoFTDataset_legacy(cfg, comb_train_dataframe, tokenizer_geno, tokenizer_pheno)
         val_dataset = GenoPhenoFTDataset_legacy(cfg, comb_val_dataframe, tokenizer_geno, tokenizer_pheno)
-        data_collator = DataCollatorWithPadding(tokenizer=tokenizer_geno)
+        data_collator = GERandDataCollatorWithPadding(tokenizer=tokenizer_geno)
 
     train_dataloader = DataLoader(train_dataset, batch_size=cfg['data']['train_batch_size'], collate_fn=data_collator,
                                   num_workers=cfg['data']['train_n_workers'], pin_memory=cfg['data']['pin_memory'])
