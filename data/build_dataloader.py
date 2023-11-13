@@ -105,11 +105,11 @@ def build_ft_legacy_dataloaders(cfg, dataframe, tokenizer_geno, tokenizer_pheno)
                                                   unique_genes=cfg['genes']['unique_genes'],
                                                   gene_probs=cfg['genes']['unique_genes_ratio'],
                                                   n_genes=cfg['data']['known_gene'])
-        data_collator = DataCollatorWithPadding(tokenizer=tokenizer_geno)
+        data_collator = GERandDataCollatorWithPadding(tokenizer=tokenizer_geno)
     else:
         train_dataset = GenoPhenoFTDataset_legacy(cfg, comb_train_dataframe, tokenizer_geno, tokenizer_pheno)
         val_dataset = GenoPhenoFTDataset_legacy(cfg, comb_val_dataframe, tokenizer_geno, tokenizer_pheno)
-        data_collator = GERandDataCollatorWithPadding(tokenizer=tokenizer_geno)
+        data_collator = DataCollatorWithPadding(tokenizer=tokenizer_geno)
 
     train_dataloader = DataLoader(train_dataset, batch_size=cfg['data']['train_batch_size'], collate_fn=data_collator,
                                   num_workers=cfg['data']['train_n_workers'], pin_memory=cfg['data']['pin_memory'])
