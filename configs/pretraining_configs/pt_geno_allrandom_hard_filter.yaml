@@ -34,5 +34,5 @@ data:
     hierarchy_file_path: D:\Datasets\NCBI\ReferenceGeneHierarchy.txt
     catalog_file_path: D:\Datasets\NCBI\ReferenceGeneCatalog.txt
 genes:
-  mode: random
+  mode: allrandom
   use_complement: True
