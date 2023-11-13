@@ -322,7 +322,6 @@ class GenoPhenoFTDatasetGeneExist(Dataset):
             all_genes = self.gene_only_include
             gene_exist_emb = [1 if a in geno_x else 0 for a in all_genes]
 
-
         tokenized_genes = [self.tokenizer_geno.cls_token_id] + self.tokenizer_geno.encode(all_genes, add_special_tokens=False)
         data_dict['input_ids'] = tokenized_genes
         data_dict['gene_ids'] = gene_exist_emb

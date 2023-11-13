@@ -26,6 +26,8 @@ data:
     - target_creation_date
   filter:
     point: False
+    point_location: False
+    clip_aac_hard: False
     partial: True
     partial_contig: True
     mistranslation: True

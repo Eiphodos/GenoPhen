@@ -12,6 +12,8 @@ data:
     - AST_phenotypes
   filter:
     point: False
+    point_location: True
+    clip_aac_hard: True
     partial: True
     partial_contig: True
     mistranslation: True
@@ -35,8 +37,8 @@ genes:
     - catA2
     - aac(3)
     - blaTEM
-    - drfA5
+    - dfrA5
     - blaOXA
-    - blaCTX
+    - blaCTX-M
     - tet(A)
     - aac(6p)

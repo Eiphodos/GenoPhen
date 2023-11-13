@@ -3,7 +3,7 @@ import numpy as np
 import os
 from data.hierarchy import build_hierarchy_data
 from data.gene_complement import build_gene_complement
-from data.preprocessing_utils import filter_len, remove_last_digits, clean_aap_aac, clean_pheno_data, clean_geno_data, clean_date_data
+from data.preprocessing_utils import filter_len, remove_last_digits, clean_aap_aac, clean_pheno_data, clean_geno_data, clean_date_data, remove_point_mut_location, clip_aac_hard
 
 def preprocess_data(cfg):
     if cfg['data']['load_preprocessed_data']:
@@ -56,6 +56,10 @@ def preprocess_data(cfg):
         if "AMR_genotypes_core" in columns and cfg['data']['filter']['aph_aac']:
             df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(clean_aap_aac)
             print("FILTER APH_AAC: Dataframe with {} rows".format(len(df)))
+        if "AMR_genotypes_core" in columns and cfg['data']['filter']['point_location']:
+            df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(remove_point_mut_location)
+        if "AMR_genotypes_core" in columns and cfg['data']['filter']['clip_aac_hard']:
+            df['AMR_genotypes_core'] = df['AMR_genotypes_core'].map(clip_aac_hard)
         if "AMR_genotypes_core" in columns and cfg['data']['filter']['min_geno'] > 0:
             df = df[df['AMR_genotypes_core'].apply(filter_len, min_length=cfg['data']['filter']['min_geno'])]
             print("FILTER GENO LEN: Dataframe with {} rows".format(len(df)))

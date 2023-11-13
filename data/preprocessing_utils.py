@@ -2,6 +2,7 @@ import re
 from collections import OrderedDict
 import pandas as pd
 
+
 def clean_aap_aac(x):
     interesting_genes = ["aph", "aac"]
     roman_numbers = ["I", "V", "X"]
@@ -22,6 +23,13 @@ def clean_aap_aac_hier(x):
 
     x = [remove_last_non_digit(a) if a[0:3] in interesting_genes and any(
         r in a.split("-")[-1] for r in roman_numbers) else a for a in x]
+    return x
+
+
+def clip_aac_hard(x):
+    all_items = x.split(',')
+    all_items = [y.split('-')[0] if 'aac' in y else y for y in all_items]
+    x = ",".join(all_items)
     return x
 
 
@@ -74,10 +82,18 @@ def remove_last_non_digit(x):
     return re.sub(r"[^0-9IVX]$", "", x)
 
 
+def remove_point_mut_location(x):
+    all_items = x.split(',')
+    all_items = [y.split('_')[0] if '=POINT' in y else y for y in all_items]
+    x = ",".join(all_items)
+    return x
+
+
 def remove_pheno_duplicates(x):
     all_items = pd.DataFrame([a.split('=') for a in x.split(',')]) # Splits sequence of AB resistances and creates dataframe
     all_items.drop_duplicates(subset=[0], inplace=True, keep=False) # Deletes duplicates based on AB name
     return ",".join(["=".join(a) for a in all_items.values.tolist()]) # Joins into list again
+
 
 def remove_geno_duplicates(x):
     all_items = pd.DataFrame([a for a in x.split(',')]) # Splits sequence of genes and creates dataframe

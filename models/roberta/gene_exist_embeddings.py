@@ -31,8 +31,6 @@ class RobertaGEEmbeddings(nn.Module):
     def forward(
         self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0,
             hierarchy_ids=None, gene_ids=None):
-        print(input_ids[0])
-        print(gene_ids[0])
         inputs_embeds = self.gene_embeddings(input_ids)
         gene_exist_embeds = self.word_embeddings(gene_ids)
         inputs_embeds[:, 1:, :] = inputs_embeds[:, 1:, :] + gene_exist_embeds
