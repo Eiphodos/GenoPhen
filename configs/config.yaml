@@ -141,7 +141,7 @@ antibiotics:
   tobramycin: TOB
   piperacillin-tazobactam: TZP
 genes:
-  mode: only_data
+  mode: known
   use_complement: False
   only_include:
     tet(A)

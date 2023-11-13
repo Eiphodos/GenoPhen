@@ -278,8 +278,8 @@ class GenoPhenoFTDataset_legacy(Dataset):
         return resp_list
 
 
-class GenoPhenoFTDatasetRandGenes(Dataset):
-    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno, unique_genes, gene_probs, n_genes):
+class GenoPhenoFTDatasetGeneExist(Dataset):
+    def __init__(self, cfg, dataframe, tokenizer_geno, tokenizer_pheno, unique_genes, gene_probs, n_genes, gene_mode, gene_only_include=None):
         self.ab_index_list = cfg['antibiotics']['index_list']
         self.tokenizer_geno = tokenizer_geno
         # self.labels = labels
@@ -291,6 +291,8 @@ class GenoPhenoFTDatasetRandGenes(Dataset):
         self.unique_genes = unique_genes
         self.gene_probs = np.array(gene_probs)
         self.n_genes = n_genes
+        self.gene_mode = gene_mode
+        self.gene_only_include = gene_only_include
 
     def __len__(self):
         return len(self.data)
@@ -303,16 +305,25 @@ class GenoPhenoFTDatasetRandGenes(Dataset):
         geno_x = self.data['AMR_genotypes_core'].iloc[idx]
         geno_x = geno_x.split(',')
 
-        random_genes = list(np.random.choice(self.unique_genes, size=self.n_genes, replace=False, p=self.gene_probs))
-        gene_exist_emb = [1 if a in geno_x else 0 for a in random_genes]
+        if self.gene_mode == 'allrandom':
+            random_genes = list(np.random.choice(self.unique_genes, size=self.n_genes, replace=False, p=self.gene_probs))
+            gene_exist_emb = [1 if a in geno_x else 0 for a in random_genes]
 
-        z = list(zip(random_genes, gene_exist_emb))
-        random.shuffle(z)
-        random_genes, gene_exist_emb = zip(*z)
-        random_genes = list(random_genes)
-        gene_exist_emb = list(gene_exist_emb)
+            z = list(zip(random_genes, gene_exist_emb))
+            random.shuffle(z)
+            random_genes, gene_exist_emb = zip(*z)
+            all_genes = list(random_genes)
+            gene_exist_emb = list(gene_exist_emb)
+        elif self.gene_mode == 'known':
+            all_genes = geno_x
+            random.shuffle(all_genes)
+            gene_exist_emb = [1 for g in all_genes]
+        elif self.gene_mode == 'include':
+            all_genes = self.gene_only_include
+            gene_exist_emb = [1 if a in geno_x else 0 for a in all_genes]
 
-        tokenized_genes = [self.tokenizer_geno.cls_token_id] + self.tokenizer_geno.encode(random_genes, add_special_tokens=False)
+
+        tokenized_genes = [self.tokenizer_geno.cls_token_id] + self.tokenizer_geno.encode(all_genes, add_special_tokens=False)
         data_dict['input_ids'] = tokenized_genes
         data_dict['gene_ids'] = gene_exist_emb
 
