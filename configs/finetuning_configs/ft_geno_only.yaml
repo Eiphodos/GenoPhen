@@ -1,6 +1,6 @@
 log_dir: D:\Models\GenoPhen\Finetuning
 training:
-  n_epochs: 50
+  n_epochs: 200
   val_every_n_epochs: 2
 optimizer:
   lr: 0.000001
