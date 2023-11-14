@@ -1,0 +1,44 @@
+log_dir: D:\Models\GenoPhen\Finetuning
+training:
+  n_epochs: 50
+  val_every_n_epochs: 2
+optimizer:
+  lr: 0.000001
+data:
+  species:
+    - E_Coli
+  columns:
+    - AMR_genotypes_core
+    - AST_phenotypes
+  filter:
+    point: False
+    point_location: True
+    clip_aac_hard: True
+    partial: True
+    partial_contig: True
+    mistranslation: True
+    hmm: True
+    bla: True
+    aph_aac: True
+    doubles_pheno: True
+    doubles_geno: False
+    min_geno: 1
+    min_ab: 1
+  known_ab: 0
+  known_gene: 1
+genes:
+  mode: include
+  use_complement: True
+  only_include:
+    - blaCMY
+    - parC
+    - aadA5
+    - gyrA
+    - catA2
+    - aac(3)
+    - blaTEM
+    - dfrA5
+    - blaOXA
+    - blaCTX-M
+    - tet(A)
+    - aac(6p)
