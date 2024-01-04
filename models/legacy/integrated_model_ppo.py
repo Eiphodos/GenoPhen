@@ -87,7 +87,7 @@ class IntegratedModelPPO:
         lr_critic = 0.001  # learning rate for critic network
         action_std = None
         has_continuous_action_space = False
-        gene_state_dim = self.geno_model.config.hidden_size
+        gene_state_dim = self.geno_model.config.hidden_size // 4
         gene_action_dim = self.geno_model.config.vocab_size
         self.ppo_gene_agent = PPO(gene_state_dim, gene_action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip,
                                   has_continuous_action_space, self.device, action_std)
@@ -123,17 +123,17 @@ class IntegratedModelPPO:
                 gemb = self.state_gene_emb(gene)
                 state = self.gene_state_fuser(torch.cat([state, gemb], dim=1))
                 if training and j < self.known_gene - 1:
-                    reward = [0]*b
-                    done = [False]*b
-                    self.ppo_gene_agent.buffer.rewards += reward
-                    self.ppo_gene_agent.buffer.is_terminals += done
+                    reward = torch.tensor([0]*b)
+                    done = torch.tensor([False]*b)
+                    self.ppo_gene_agent.buffer.rewards.append(reward)
+                    self.ppo_gene_agent.buffer.is_terminals.append(done)
 
             print("Selected best genes for batch 0 is: {}".format(best_gene[0]))
-            print(input_ids[0])
+            #print(input_ids[0])
 
             gene_ids = torch.stack([torch.BoolTensor([j in g for j in b]) for b, g in zip(best_gene, input_ids)], dim=0).to(
                 dtype=torch.int32, device=self.device)
-            print(gene_ids[0])
+            #print(gene_ids[0])
             #gene_ids = torch.stack([torch.any(torch.eq(input_ids, g), dim=1) for g in best_gene], dim=1).to(dtype=torch.int32)
             cls_tokens = input_ids[:, 0]
             #bg_batched = best_gene.repeat(b, 1)
@@ -256,13 +256,18 @@ class IntegratedModelPPO:
 
         rewards, acc2 = self.compute_rewards(mlm_hat, y_resp, y_pos_antibiotic)
         acc2 = sum(acc2) / len(acc2)
-        #print("reward len: {}".format(len(rewards)))
-        terminals = [True]*len(rewards)
-        self.ppo_gene_agent.buffer.rewards += rewards
-        self.ppo_gene_agent.buffer.is_terminals += terminals
+        terminals = torch.tensor([True]*len(rewards))
+        self.ppo_gene_agent.buffer.rewards.append(rewards)
+        self.ppo_gene_agent.buffer.is_terminals.append(terminals)
+        #print("Actions: {}".format(self.ppo_gene_agent.buffer.actions))
+        #print("Rewards: {}".format(self.ppo_gene_agent.buffer.rewards))
+        self.ppo_gene_agent.buffer.flatten_buffer()
+        print("Actions 0 to 10: {}".format(self.ppo_gene_agent.buffer.flat_actions[0:10]))
+        print("Rewards 0 to 10: {}".format(self.ppo_gene_agent.buffer.flat_rewards[0:10]))
+        #print("States 0 to 10: {}".format(self.ppo_gene_agent.buffer.flat_states[0:10]))
         self.current_timestep += 1
         if self.current_timestep % self.gene_update_timestep == 0:
-            print("Updating PPO agent with a buffer of size {}".format(len(self.ppo_gene_agent.buffer.states)))
+            print("Updating PPO agent with a buffer of size {}".format(len(self.ppo_gene_agent.buffer.flat_states)))
             self.ppo_gene_agent.update()
             print("Update complete")
 
@@ -501,7 +506,7 @@ class IntegratedModelPPO:
         acc = [(tp + tn)/(tp + fp + tn + fn) if (tp + fp + tn + fn) > 0 else 0 for tp, fp, tn, fn in tp_fp_tn_fn]
         f1 = [2 * (prec * rec) / (prec + rec) if (prec + rec) > 0 else 0 for prec, rec in zip(precision, recall)]
         #print("f1: {}".format(f1[0]))
-        rewards = [f1_b**2 for f1_b in f1]
+        rewards = torch.tensor([f1_b**2 for f1_b in f1])
         return rewards, acc
 
     def compute_tp_fp_tn_fn(self, ab_pred_true):

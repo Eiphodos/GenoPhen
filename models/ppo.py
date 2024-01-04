@@ -11,6 +11,12 @@ class RolloutBuffer:
         self.rewards = []
         self.state_values = []
         self.is_terminals = []
+        self.flat_actions = []
+        self.flat_states = []
+        self.flat_logprobs = []
+        self.flat_rewards = []
+        self.flat_state_values = []
+        self.flat_is_terminals = []
 
     def clear(self):
         del self.actions[:]
@@ -19,6 +25,29 @@ class RolloutBuffer:
         del self.rewards[:]
         del self.state_values[:]
         del self.is_terminals[:]
+
+    def clear_all(self):
+        del self.actions[:]
+        del self.states[:]
+        del self.logprobs[:]
+        del self.rewards[:]
+        del self.state_values[:]
+        del self.is_terminals[:]
+        del self.flat_actions
+        del self.flat_states
+        del self.flat_logprobs
+        del self.flat_rewards
+        del self.flat_state_values
+        del self.flat_is_terminals
+
+    def flatten_buffer(self):
+        self.flat_actions = torch.stack(self.actions, dim=1).flatten(0, 1)
+        self.flat_states = torch.stack(self.states, dim=1).flatten(0, 1)
+        self.flat_logprobs = torch.stack(self.logprobs, dim=1).flatten(0, 1)
+        self.flat_rewards = torch.stack(self.rewards, dim=1).flatten(0, 1)
+        self.flat_state_values = torch.stack(self.state_values, dim=1).flatten(0, 1)
+        self.flat_is_terminals = torch.stack(self.is_terminals, dim=1).flatten(0, 1)
+        self.clear()
 
 
 class ActorCritic(nn.Module):
@@ -180,10 +209,10 @@ class PPO:
                 state = torch.FloatTensor(state).to(self.device)
                 action, action_logprob, state_val = self.policy_old.act(state)
             if add_to_buffer:
-                self.buffer.states += state
-                self.buffer.actions += action
-                self.buffer.logprobs += action_logprob
-                self.buffer.state_values += state_val
+                self.buffer.states.append(state)
+                self.buffer.actions.append(action)
+                self.buffer.logprobs.append(action_logprob)
+                self.buffer.state_values.append(state_val)
 
             return action.detach().cpu().numpy().flatten()
 
@@ -193,10 +222,10 @@ class PPO:
                 action, action_logprob, state_val = self.policy_old.act(state)
 
             if add_to_buffer:
-                self.buffer.states += state
-                self.buffer.actions += action
-                self.buffer.logprobs += action_logprob
-                self.buffer.state_values += state_val
+                self.buffer.states.append(state)
+                self.buffer.actions.append(action)
+                self.buffer.logprobs.append(action_logprob)
+                self.buffer.state_values.append(state_val)
 
             return action
 
@@ -205,7 +234,7 @@ class PPO:
         # Monte Carlo estimate of returns
         rewards = []
         discounted_reward = 0
-        for reward, is_terminal in zip(reversed(self.buffer.rewards), reversed(self.buffer.is_terminals)):
+        for reward, is_terminal in zip(reversed(self.buffer.flat_rewards), reversed(self.buffer.flat_is_terminals)):
             if is_terminal:
                 discounted_reward = 0
             discounted_reward = reward + (self.gamma * discounted_reward)
@@ -216,10 +245,10 @@ class PPO:
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
         # convert list to tensor
-        old_states = torch.squeeze(torch.stack(self.buffer.states, dim=0)).detach().to(self.device)
-        old_actions = torch.squeeze(torch.stack(self.buffer.actions, dim=0)).detach().to(self.device)
-        old_logprobs = torch.squeeze(torch.stack(self.buffer.logprobs, dim=0)).detach().to(self.device)
-        old_state_values = torch.squeeze(torch.stack(self.buffer.state_values, dim=0)).detach().to(self.device)
+        old_states = torch.squeeze(self.buffer.flat_states, dim=0).detach().to(self.device)
+        old_actions = torch.squeeze(self.buffer.flat_actions, dim=0).detach().to(self.device)
+        old_logprobs = torch.squeeze(self.buffer.flat_logprobs, dim=0).detach().to(self.device)
+        old_state_values = torch.squeeze(self.buffer.flat_state_values, dim=0).detach().to(self.device)
 
         # calculate advantages
         advantages = rewards.detach() - old_state_values.detach()
@@ -251,7 +280,7 @@ class PPO:
         self.policy_old.load_state_dict(self.policy.state_dict())
 
         # clear buffer
-        self.buffer.clear()
+        self.buffer.clear_all()
 
     def save(self, checkpoint_path):
         torch.save(self.policy_old.state_dict(), checkpoint_path)
