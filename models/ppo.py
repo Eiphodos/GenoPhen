@@ -123,9 +123,12 @@ class PPO:
             self.action_std = action_std_init
 
         self.device = device
-        self.gamma = gamma
-        self.eps_clip = eps_clip
+        self.gamma = gamma  # Controls discounted reward
+        self.alpha = 0.5  # Controls state value loss
+        self.beta = 0.01  # Controls entropy
+        self.eps_clip = eps_clip  # Controls divergence from previous model
         self.K_epochs = K_epochs
+
 
         self.buffer = RolloutBuffer()
 
@@ -237,7 +240,7 @@ class PPO:
             surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
 
             # final loss of clipped objective PPO
-            loss = -torch.min(surr1, surr2) + 0.5 * self.MseLoss(state_values, rewards) - 0.01 * dist_entropy
+            loss = -torch.min(surr1, surr2) + self.alpha * self.MseLoss(state_values, rewards) - self.beta * dist_entropy
 
             # take gradient step
             self.optimizer.zero_grad()
