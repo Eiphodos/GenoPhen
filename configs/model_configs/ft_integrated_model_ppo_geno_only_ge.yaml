@@ -1,5 +1,5 @@
 model:
-  class: IntegratedModel
+  class: IntegratedModelPPO
   hidden_dim: 200
   input_dim: 512
   out_dim: 2

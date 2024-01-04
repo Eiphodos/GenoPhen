@@ -12,6 +12,8 @@ data:
     - AST_phenotypes
   filter:
     point: False
+    point_location: False
+    clip_aac_hard: False
     partial: True
     partial_contig: True
     mistranslation: True
