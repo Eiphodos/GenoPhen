@@ -267,9 +267,17 @@ class PPO:
             # Finding Surrogate Loss
             surr1 = ratios * advantages
             surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
+            surr_loss = torch.min(surr1, surr2)
+
+            # State - Value loss
+            sv_loss = self.alpha * self.MseLoss(state_values, rewards)
+
+            # Entropy loss
+            ent_loss = self.beta * dist_entropy
 
             # final loss of clipped objective PPO
-            loss = -torch.min(surr1, surr2) + self.alpha * self.MseLoss(state_values, rewards) - self.beta * dist_entropy
+
+            loss = -surr_loss + sv_loss - ent_loss
 
             # take gradient step
             self.optimizer.zero_grad()
@@ -281,6 +289,8 @@ class PPO:
 
         # clear buffer
         self.buffer.clear_all()
+
+        return loss.detach().mean(), surr_loss.detach().mean(), sv_loss.detach().mean(), ent_loss.detach().mean()
 
     def save(self, checkpoint_path):
         torch.save(self.policy_old.state_dict(), checkpoint_path)

@@ -254,8 +254,12 @@ class IntegratedModelPPO:
         me = 1 - spec
         vme = 1 - rec
 
-        rewards, acc2 = self.compute_rewards(mlm_hat, y_resp, y_pos_antibiotic)
-        acc2 = sum(acc2) / len(acc2)
+        ppo_loss = None
+        ppo_surr_loss = None
+        ppo_sv_loss = None
+        ppo_ent_loss = None
+        rewards = self.compute_rewards(mlm_hat, y_resp, y_pos_antibiotic)
+        #acc2 = sum(acc2) / len(acc2)
         terminals = torch.tensor([True]*len(rewards))
         self.ppo_gene_agent.buffer.rewards.append(rewards)
         self.ppo_gene_agent.buffer.is_terminals.append(terminals)
@@ -268,10 +272,10 @@ class IntegratedModelPPO:
         self.current_timestep += 1
         if self.current_timestep % self.gene_update_timestep == 0:
             print("Updating PPO agent with a buffer of size {}".format(len(self.ppo_gene_agent.buffer.flat_states)))
-            self.ppo_gene_agent.update()
+            ppo_loss, ppo_surr_loss, ppo_sv_loss, ppo_ent_loss = self.ppo_gene_agent.update()
             print("Update complete")
 
-        return ab_y_hat, ab_y_true, loss_y, acc, me, vme, prec, acc2
+        return ab_y_hat, ab_y_true, loss_y, acc, me, vme, prec, ppo_loss, ppo_surr_loss, ppo_sv_loss, ppo_ent_loss
 
     def val_pass_and_loss(self, input_ids, x, y_pos_antibiotic, y_resp, len_y,
                           total_len_x, attention_mask, gene_ids):
@@ -314,10 +318,16 @@ class IntegratedModelPPO:
 
         train_loss = 0.
         acc_tot = 0
-        acc2_tot = 0
         me_tot = 0
         vme_tot = 0
         prec_tot = 0
+
+        ppo_loss_tot = 0
+        ppo_surr_loss_tot = 0
+        ppo_sv_loss_tot = 0
+        ppo_ent_loss_tot = 0
+        n_ppo_trained = 0
+
         print_every_n_batches = 10
         curr_batch = 0
         # for input_ids, x, x_pos_antibiotic, y_pos_antibiotic, x_resp, y_resp, len_x, len_y, total_len_x, attention, labels in self.train_loader:
@@ -336,7 +346,7 @@ class IntegratedModelPPO:
             attention = batch['attention_mask']
             gene_ids = batch['gene_ids']
             self.optimizer.zero_grad()
-            ab_y_hat, ab_y_true, loss_y, acc, me, vme, prec, acc2 = \
+            ab_y_hat, ab_y_true, loss_y, acc, me, vme, prec, ppo_loss, ppo_surr_loss, ppo_sv_loss, ppo_ent_loss = \
                 self.train_pass_and_loss(input_ids, x, y_pos_antibiotic, y_resp, len_y,
                                          total_len_x, attention, gene_ids)
 
@@ -348,10 +358,20 @@ class IntegratedModelPPO:
             train_loss += loss.item()
 
             acc_tot += acc
-            acc2_tot += acc2
             me_tot += me
             vme_tot += vme
             prec_tot += prec
+
+            if ppo_loss is not None:
+                ppo_loss_tot += ppo_loss
+                n_ppo_trained += 1
+            if ppo_surr_loss is not None:
+                ppo_surr_loss_tot += ppo_surr_loss
+            if ppo_sv_loss is not None:
+                ppo_sv_loss_tot += ppo_sv_loss
+            if ppo_ent_loss is not None:
+                ppo_ent_loss_tot += ppo_ent_loss
+
 
             '''
             if curr_batch % print_every_n_batches == 0:
@@ -380,7 +400,19 @@ class IntegratedModelPPO:
         self.epoch += 1
         if self.scheduler:
             self.scheduler.step()
-        return train_loss / self.n_batches_train, acc_tot / self.n_batches_train, me_tot / self.n_batches_train, vme_tot / self.n_batches_train, acc2_tot / self.n_batches_train
+
+        ppo_loss_tot = ppo_loss_tot / n_ppo_trained if n_ppo_trained > 0 else 0
+        ppo_surr_loss_tot = ppo_surr_loss_tot / n_ppo_trained if n_ppo_trained > 0 else 0
+        ppo_sv_loss_tot = ppo_sv_loss_tot / n_ppo_trained if n_ppo_trained > 0 else 0
+        ppo_ent_loss_tot = ppo_ent_loss_tot / n_ppo_trained if n_ppo_trained > 0 else 0
+
+        train_loss = train_loss / self.n_batches_train
+        acc_tot = acc_tot / self.n_batches_train
+        me_tot = me_tot / self.n_batches_train
+        vme_tot = vme_tot / self.n_batches_train
+
+
+        return train_loss, acc_tot, me_tot, vme_tot, ppo_loss_tot, ppo_surr_loss_tot, ppo_sv_loss_tot, ppo_ent_loss_tot
 
     def _val_epoch(self):
         # Set Train Mode
@@ -434,19 +466,27 @@ class IntegratedModelPPO:
     def train(self, n_epochs: int):
         for e in range(n_epochs):
             # start_time = time.time()
-            train_loss, acc_tot, me_tot, vme_tot, acc2_tot = self._train_epoch()
+            train_loss, acc_tot, me_tot, vme_tot, ppo_loss_tot, ppo_surr_loss_tot, ppo_sv_loss_tot, ppo_ent_loss_tot = self._train_epoch()
             # print("--- training: %s seconds ---" % (time.time() - start_time))
             if wandb.run is not None:
                 wandb.log({'Training epoch loss': train_loss, "epoch": e})
                 wandb.log({'Training epoch accuracy': acc_tot, "epoch": e})
-                wandb.log({'Training epoch major error rate':me_tot, "epoch": e})
-                wandb.log({'Training epoch very major error rate':vme_tot, "epoch": e})
+                wandb.log({'Training epoch major error rate': me_tot, "epoch": e})
+                wandb.log({'Training epoch very major error rate': vme_tot, "epoch": e})
+                wandb.log({'Training PPO loss': ppo_loss_tot, "epoch": e})
+                wandb.log({'Training PPO surr loss': ppo_surr_loss_tot, "epoch": e})
+                wandb.log({'Training PPO stateval loss': ppo_sv_loss_tot, "epoch": e})
+                wandb.log({'Training PPO entropy loss': ppo_ent_loss_tot, "epoch": e})
 
             print(self.epoch, "Train loss: {}".format(train_loss))
             print(self.epoch, "Accuracy: {}".format(acc_tot))
-            print(self.epoch, "Accuracy2: {}".format(acc2_tot))
             print(self.epoch, "Major error: {}".format(me_tot))
             print(self.epoch, "Very major error: {}".format(vme_tot))
+            print(self.epoch, "PPO loss: {}".format(ppo_loss_tot))
+            print(self.epoch, "PPO surr loss: {}".format(ppo_surr_loss_tot))
+            print(self.epoch, "PPO stateval loss: {}".format(ppo_sv_loss_tot))
+            print(self.epoch, "PPO entropy loss: {}".format(ppo_ent_loss_tot))
+
 
             if self.val_loader is not None:
                 if e % self.eval_every_n == 0:
@@ -503,11 +543,11 @@ class IntegratedModelPPO:
         recall = [tp/(tp + fn) if (tp + fn) > 0 else 0 for tp, fp, tn, fn in tp_fp_tn_fn]
         precision = [tp / (tp + fp) if (tp + fp) > 0 else 0 for tp, fp, tn, fn in tp_fp_tn_fn]
         specificity = [tn/(tn + fp) if (tn + fp) > 0 else 0 for tp, fp, tn, fn in tp_fp_tn_fn]
-        acc = [(tp + tn)/(tp + fp + tn + fn) if (tp + fp + tn + fn) > 0 else 0 for tp, fp, tn, fn in tp_fp_tn_fn]
+        #acc = [(tp + tn)/(tp + fp + tn + fn) if (tp + fp + tn + fn) > 0 else 0 for tp, fp, tn, fn in tp_fp_tn_fn]
         f1 = [2 * (prec * rec) / (prec + rec) if (prec + rec) > 0 else 0 for prec, rec in zip(precision, recall)]
         #print("f1: {}".format(f1[0]))
         rewards = torch.tensor([f1_b**2 for f1_b in f1])
-        return rewards, acc
+        return rewards#, acc
 
     def compute_tp_fp_tn_fn(self, ab_pred_true):
         tp = sum([p == 1 and l == 1 for p, l in ab_pred_true])
