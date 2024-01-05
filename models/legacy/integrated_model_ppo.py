@@ -128,17 +128,18 @@ class IntegratedModelPPO:
                     self.ppo_gene_agent.buffer.rewards.append(reward)
                     self.ppo_gene_agent.buffer.is_terminals.append(done)
 
+            #print("All genes for batch 0 are: {}".format(input_ids[0]))
+            #print("All genes for batch 1 are: {}".format(input_ids[1]))
             print("Selected best genes for batch 0 is: {}".format(best_gene[0]))
             print("Selected best genes for batch 1 is: {}".format(best_gene[1]))
-            #print(input_ids[0])
-
             gene_ids = torch.stack([torch.BoolTensor([j in g for j in b]) for b, g in zip(best_gene, input_ids)], dim=0).to(
                 dtype=torch.int32, device=self.device)
-            #print(gene_ids[0])
+            #print("Gene exist for batch 0 is: {}".format(gene_ids[0]))
+            #print("Gene exist for batch 1 is: {}".format(gene_ids[1]))
             #gene_ids = torch.stack([torch.any(torch.eq(input_ids, g), dim=1) for g in best_gene], dim=1).to(dtype=torch.int32)
             cls_tokens = input_ids[:, 0]
             #bg_batched = best_gene.repeat(b, 1)
-            attention_mask = None
+            attention_mask = None # No attention mask needed as we do not pad
             input_ids = torch.cat([cls_tokens.unsqueeze(1), best_gene], dim=1)
 
 
