@@ -116,8 +116,7 @@ class ActorCritic(nn.Module):
         action = dist.sample()
         action_logprob = dist.log_prob(action)
         state_val = self.critic(state)
-
-        return action.detach(), action_logprob.detach(), state_val.detach()
+        return action.detach(), action_logprob.detach().squeeze(), state_val.detach().squeeze()
 
     def evaluate(self, state, action):
 
@@ -239,10 +238,12 @@ class PPO:
                 discounted_reward = 0
             discounted_reward = reward + (self.gamma * discounted_reward)
             rewards.insert(0, discounted_reward)
-
         # Normalizing the rewards
         rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
+        #print("Rewards: {}".format(rewards))
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
+        #print("Rewards norm: {}".format(rewards))
+        #print(rewards.shape)
 
         # convert list to tensor
         old_states = torch.squeeze(self.buffer.flat_states, dim=0).detach().to(self.device)
@@ -252,6 +253,13 @@ class PPO:
 
         # calculate advantages
         advantages = rewards.detach() - old_state_values.detach()
+
+        #print("Actions: {}".format(old_actions))
+        #print(old_actions.shape)
+        #print("State values: {}".format(old_state_values))
+        #print(old_actions.shape)
+        #print("Advantages: {}".format(advantages))
+        #print(advantages.shape)
 
         # Optimize policy for K epochs
         for _ in range(self.K_epochs):
